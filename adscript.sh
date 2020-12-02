@@ -78,7 +78,7 @@ _amass() {
 
 	printf "    [${green}+${reset}] amass"
 	printf "\r"
-	amass enum -d ${domain} -o ${amass_output} &> /dev/null
+	amass enum -passive -d ${domain} -o ${amass_output} &> /dev/null
 	echo -e "    [${green}+${reset}] amass: $(wc -l < ${amass_output})"
 }
 
@@ -208,7 +208,7 @@ main() {
 		visual_reconnaissance="${output}/visual-reconnaissance"
 		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 
-		cat ${hosts} | aquatone -http-timeout 10000 -out ${visual_reconnaissance} &> /dev/null
+		cat ${hosts} | aquatone -threads=5 -http-timeout 10000 -out ${visual_reconnaissance} &> /dev/null
 	}
 
 	# }}
