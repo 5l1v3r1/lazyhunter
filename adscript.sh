@@ -52,10 +52,10 @@ check_tools() {
 		anew
 		httpx
 		amass
-		notify
 		massdns
 		sigsubs
 		aquatone
+		signotify
 		subfinder
 		findomain
 	)
@@ -168,7 +168,7 @@ main() {
 
 		printf "    [${green}+${reset}] resolving"
 		printf "\r"
-		massdns -r ${HOME}/tools/web-security/discovery/dns/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
+		massdns -r ${HOME}/tools/web-sec/discovery/dns/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
 		echo -e "    [${green}+${reset}] resolved!"
 
 		printf "    [${green}+${reset}] resolved IPs"
