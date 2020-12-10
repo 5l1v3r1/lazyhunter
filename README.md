@@ -4,16 +4,18 @@
 
 A wrapper, bash script, around tools I use for assets discovery to automate my workflow. This script utilizes the following tools:
 * Subdomains Gathering
-    * [amass]()
-    * [sigsubs]()
-    * [subfinder]()
+    * [amass](https://github.com/OWASP/Amass)
+    * [sigsubs](https://github.com/drsigned/sigsubs)
+    * [subfinder](https://github.com/projectdiscovery/subfinder)
     * [findomain]()
 * Subdomains Resolution
-    * [massdns]()
+    * [massdns](https://github.com/blechschmidt/massdns)
 * HTTP(S) probing
-    * [httpx]()
+    * [httpx](https://github.com/projectdiscovery/httpx)
 * Visual Reconnaissance
-    * [aquatone]()
+    * [aquatone](https://github.com/michenriksen/aquatone)
+* Notification
+    * [notifier](https://github.com/drsigned/notifier)
 
 ## Installation
 
@@ -27,8 +29,32 @@ $ git clone https://github.com/drsigned/adscript.git
 
 To display this script's help message, use the `-h` flag:
 
-```bash
+```
 $ ./adscript -h
+
+           _               _       _   
+  __ _  __| |___  ___ _ __(_)_ __ | |_ 
+ / _` |/ _` / __|/ __| '__| | '_ \| __|
+| (_| | (_| \__ \ (__| |  | | |_) | |_ 
+ \__,_|\__,_|___/\___|_|  |_| .__/ \__| v1.0.0 
+----------------------------|_| By Dr. Signed -----
+---------------------------------------------------
+USAGE:
+  adscript.sh [OPTIONS]
+
+OPTIONS:
+  -d 		 domain to AD on
+  -u 		 subs' sources to use
+  -e 		 subs' sources to exclude
+  -resolve	 resolve subdomains
+  -httprobe	 HTTP(S) probe
+  -screenshot	 take screenshots
+  -o 		 output directory path
+  -k 		 keep each tool's temp results
+  -n 		 send notifications
+  -h 		 display this message and exit
+
+HAPPY HACKING ! :)
 ```
 
 ## Contibution

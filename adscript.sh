@@ -28,21 +28,22 @@ display_usage() {
 	do
 		printf "%b\n" "${line}"
 	done <<-EOF
-	\r Usage:
-	\r   ${script_file_name} [OPTIONS]
+	\rUSAGE:
+	\r  ${script_file_name} [OPTIONS]
 
-	\r Options:
-	\r   -d, --domain\t\t domain to AD on
-	\r   -u, --use\t\t subs' sources to use
-	\r   -e, --exclude\t subs' sources to exclude
-	\r       --resolve\t resolve subdomains
-	\r       --screenshot\t take screenshots
-	\r   -o, --output\t\t output directory path
-	\r   -k, --keep\t\t keep each tool's temp results
-	\r   -n, --notify\t\t send notifications
-	\r   -h, --help\t\t display this message and exit
+	\rOPTIONS:
+	\r  -d \t\t domain to AD on
+	\r  -u \t\t subs' sources to use
+	\r  -e \t\t subs' sources to exclude
+	\r  -resolve\t resolve subdomains
+	\r  -httprobe\t HTTP(S) probe
+	\r  -screenshot\t take screenshots
+	\r  -o \t\t output directory path
+	\r  -k \t\t keep each tool's temp results
+	\r  -n \t\t send notifications
+	\r  -h \t\t display this message and exit
 	
-	\r HAPPY HACKING ! :)
+	\rHAPPY HACKING ! :)
 
 EOF
 }
@@ -55,7 +56,7 @@ check_tools() {
 		massdns
 		sigsubs
 		aquatone
-		signotify
+		notifier
 		subfinder
 		findomain
 	)
@@ -193,7 +194,7 @@ main() {
 		hosts="${output}/hosts.txt"
 
 		[ ${notify} == True ] && {
-			httpx -l ${resolved_subdomains} -silent | anew ${hosts} | awk '{print new ": `" $0 "`"}' new="script4assets: New host for ${domain}" | signotify
+			httpx -l ${resolved_subdomains} -silent | anew ${hosts} | awk '{print new ": `" $0 "`"}' new="script4assets: New host for ${domain}" | notifier
 		} || {
 			httpx -l ${resolved_subdomains} -silent | anew -q ${hosts} 
 		}
@@ -240,11 +241,11 @@ sources_to_exclude=False
 while [[ "${#}" -gt 0 && ."${1}" == .-* ]]
 do
 	case "$(echo ${1} | tr '[:upper:]' '[:lower:]')" in
-		-d | --domain)
+		-d)
 			domain=${2}
 			shift
 		;;
-		-u | --use)
+		-u)
 			sources_to_use=${2}
 			sources_to_use_dictionary=${sources_to_use//,/ }
 
@@ -258,7 +259,7 @@ do
 			done
 			shift
 		;;
-		-e | --exclude)
+		-e)
 			sources_to_exclude=${2}
 			sources_to_exclude_dictionary=${sources_to_exclude//,/ }
 
@@ -272,16 +273,16 @@ do
 			done
 			shift
 		;;
-		--resolve) resolve=True ;;
-		--httprobe) httprobe=True ;;
-		--screenshot) screenshot=True ;;
-		-o | --output)
+		-resolve) resolve=True ;;
+		-httprobe) httprobe=True ;;
+		-screenshot) screenshot=True ;;
+		-o)
 			output="${2}/asset-discovery"
 			shift
 		;;
-		-k | --keep) keep=True ;;
-		-n | --notify) notify=True ;;
-		-h | --help) 
+		-k) keep=True ;;
+		-n) notify=True ;;
+		-h) 
 			display_usage
 			exit 0
 		;;
