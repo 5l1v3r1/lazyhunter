@@ -1,6 +1,6 @@
-# adscript (Asset Discovery Script)
+# autorecon
 
-![Made with Bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![Maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/adscript.svg?style=flat&color=0040ff)](https://github.com/drsigned/adscript/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/adscript.svg?style=flat&color=0040ff)](https://github.com/drsigned/adscript/issues?q=is:issue+is:closed) [![License](https://img.shields.io/badge/License-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/adscript/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
+![made with bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/autorecon/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
 
 A wrapper, bash script, around tools I use for assets discovery to automate my workflow. This script utilizes the following tools:
 * Subdomains Gathering
@@ -22,7 +22,7 @@ A wrapper, bash script, around tools I use for assets discovery to automate my w
 To get the script clone this repository:
 
 ```bash
-$ git clone https://github.com/drsigned/adscript.git
+$ git clone https://github.com/drsigned/autorecon.git
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ $ git clone https://github.com/drsigned/adscript.git
 To display this script's help message, use the `-h` flag:
 
 ```
-$ ./adscript -h
+$ ./autorecon -h
 
            _               _       _   
   __ _  __| |___  ___ _ __(_)_ __ | |_ 
@@ -40,7 +40,7 @@ $ ./adscript -h
 ----------------------------|_| By Dr. Signed -----
 ---------------------------------------------------
 USAGE:
-  adscript.sh [OPTIONS]
+  autorecon.sh [OPTIONS]
 
 OPTIONS:
   -d 		 domain to AD on
@@ -59,4 +59,4 @@ HAPPY HACKING ! :)
 
 ## Contibution
 
-[Issues](https://github.com/drsigned/adscript/issues) and [Pull Requests](https://github.com/drsigned/adscript/pulls) are welcome!
+[Issues](https://github.com/drsigned/autorecon/issues) and [Pull Requests](https://github.com/drsigned/autorecon/pulls) are welcome!
