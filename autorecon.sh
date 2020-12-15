@@ -12,9 +12,9 @@ script_file_name=${0##*/}
 
 banner() {
 echo -e ${bold}${blue}"
-             _                                 
-  __ _ _   _| |_ ___  _ __ ___  ___ ___  _ __  
- / _\` | | | | __/ _ \| '__/ _ \/ __/ _ \| '_ \ 
+             _
+  __ _ _   _| |_ ___  _ __ ___  ___ ___  _ __
+ / _\` | | | | __/ _ \| '__/ _ \/ __/ _ \| '_ \\
 | (_| | |_| | || (_) | | |  __/ (_| (_) | | | |
  \__,_|\__,_|\__\___/|_|  \___|\___\___/|_| |_| ${green}v1.0.0 ${blue} 
 --------------------------------- ${yellow}By Dr. Signed ${blue}------
@@ -62,12 +62,15 @@ check_tools() {
 		subfinder
 		findomain
 		sigurls
+		sigurlx
 	)
 	missing_tools=()
 
 	for tool in "${tools[@]}"
 	do
-		[ ! -x "$(command -v ${tool})" ] && { missing_tools+=(${tool}); }
+		[ ! -x "$(command -v ${tool})" ] && {
+			missing_tools+=(${tool})
+		}
 	done
 
 	[ ${#missing_tools[@]} -gt 0 ] && {
@@ -154,14 +157,11 @@ main() {
 	cat ${asset_discovery}/temp-*-subdomains.txt | sed 's#*.# #g' | anew -q ${subdomains}
 	echo -e "        [=] unique subdomains: $(wc -l < ${subdomains})"
 
-	[ ${keep} == False ] && rm ${asset_discovery}/temp-*-subdomains.txt
-
 	# }}
 	# {{ SUBDOMAINS RESOLUTION
 
 	[ ${resolve} == True ] && {
 		echo -e "    [${green}+${reset}] subdomain resolution"
-
 		ips="${asset_discovery}/ips.txt"
 		resolved_subdomains="${asset_discovery}/resolved-subdomains.txt"
 
@@ -181,8 +181,6 @@ main() {
 		printf "\r"
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
 		echo -e "        [${green}+${reset}] resolved subdomains: $(wc -l < ${resolved_subdomains})"
-
-		[ ${keep} == False ] && rm ${asset_discovery}/temp-*-resolve.txt
 	}
 
 	# }}
@@ -190,7 +188,6 @@ main() {
 
 	[ ${resolve} == True ] && [ ${httprobe} == True ] && {
 		echo -e "    [${green}+${reset}] http(s) probing"
-
 		hosts="${asset_discovery}/hosts.txt"
 
 		[ ${notify} == True ] && {
@@ -201,18 +198,30 @@ main() {
 	}
 
 	# }}
+	# {{ HOSTS PROBING
+
+	[ ${resolve} == True ] && [ ${httprobe} == True ] && [ ${hostsprobe} == True ] && {
+		echo -e "    [${green}+${reset}] hosts probing"
+		hosts_probe="${asset_discovery}/hosts-probe.json"
+
+		cat ${hosts} | sigurlx -request -o ${hosts_probe} -s &> /dev/null
+	}
+
+	# }}
 	# {{ VISUAL RECONNAISSANCE
 
 	[ ${resolve} == True ] && [ ${httprobe} == True ] &&[ ${screenshot} == True ] && {
 		echo -e "    [${green}+${reset}] visual reconnaissance"
-
 		visual_reconnaissance="${asset_discovery}/visual-reconnaissance"
-		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 
+		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 		cat ${hosts} | aquatone -threads=5 -http-timeout 10000 -out ${visual_reconnaissance} &> /dev/null
 	}
 
 	# }}
+
+	[ ${keep} == False ] && rm ${asset_discovery}/temp-*-subdomains.txt
+	[ ${keep} == False ] && rm ${asset_discovery}/temp-*-resolve.txt
 
 	# }}
 	# {{ TARGET MAPPING
@@ -222,6 +231,18 @@ main() {
 		echo -e "[${green}+${reset}] target mapping"
 		[ ! -d ${content_discovery} ] && mkdir -p ${content_discovery}
 
+		# {{ FINGERPRINTING
+
+		echo -e "    [${green}+${reset}] fingerprinting"
+
+		fingerprinting_output="${content_discovery}/fingerprinting"
+		[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
+
+		cd ${fingerprinting_output}
+		cat ${hosts} | rush 'wappalyzer {} -P > $(echo {} | urlbits format %s.%S.%r.%t).json' -j 5
+		cd - &> /dev/null
+		
+		# }}
 		# {{ GATHER URLS
 
 		echo -e "    [${green}+${reset}] gathering urls"
@@ -233,14 +254,16 @@ main() {
 		sigurls -d ${domain} -subs -s 1> ${sigurls_output} 2> /dev/null
 		echo -e "        [${green}+${reset}] sigurls: $(wc -l < ${sigurls_output})"
 
-		local sigrawler_output="${content_discovery}/temp-sigrawler-urls.json"
+		local sigrawler_output="${content_discovery}/sigrawler.json"
 
 		printf "        [${green}+${reset}] sigrawler"
 		printf "\r"
-		cat ${hosts} | sigrawler -subs -depth 3 -o ${sigrawler_output} &> /dev/null
+		cat ${hosts} ${sigurls_output} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
 		echo -e "        [${green}+${reset}] sigrawler: $(wc -l < ${sigrawler_output})"
 
 		# }}
+
+		[ ${keep} == False ] && rm ${content_discovery}/temp-*-urls.txt
 
 	}
 	
@@ -249,15 +272,14 @@ main() {
 	echo -e ${bold}${blue}"\n- DONE! -------------------------------------------"${reset}
 }
 
-# tasks
+keep=False
+notify=False
+domain=False
 resolve=False
 httprobe=False
+hostsprobe=False
 screenshot=False
-
-keep=False
-domain=False
-
-notify=False
+map_target=False
 
 subs_sources=(
 	amass
@@ -308,6 +330,7 @@ do
 		;;
 		-resolve) resolve=True ;;
 		-httprobe) httprobe=True ;;
+		-hostsprobe) hostsprobe=True ;;
 		-screenshot) screenshot=True ;;
 		-map) map_target=True ;;
 		-o)
