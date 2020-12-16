@@ -36,10 +36,11 @@ display_usage() {
 	\rFEATURES:
 	\r  [+] Asset Discovery
 	\r  [+] Content Discovery
+	\r  [+] Low Hanging Vulns Discovery
 
 	\rGENERAL OPTIONS:
 	\r  -d \t\t domain to AD on
-	\r  -n \t\t send notifications
+	\r  -notify \t send notifications
 	\r  -h \t\t display this message and exit
 
 	\rASSET DISCOVERY OPTIONS:
@@ -52,7 +53,10 @@ display_usage() {
 
 	\rCONTENT DISCOVERY OPTIONS:
 	\r  -cd \t\t do content discovery
-	\r  -f \t\t fingerprint web technology
+	\r  -tech-detect \t detect web technology used
+
+	\rVULNERABILITY DISCOVERY OPTIONS:
+	\r  -vulns \t do content discovery
 
 	\rOUTPUT OPTIONS:
 	\r  -o \t\t output directory path
@@ -65,6 +69,7 @@ EOF
 
 check_tools() {
 	tools=(
+		jq
 		anew
 		httpx
 		amass
@@ -76,6 +81,8 @@ check_tools() {
 		findomain
 		sigurls
 		sigurlx
+		sigstko
+		nuclei
 	)
 	missing_tools=()
 
@@ -170,8 +177,15 @@ main() {
 
 	cat ${asset_discovery_output}/temp-*-subdomains.txt | sed 's#*.# #g' | anew -q ${subdomains}
 	echo -e "        [=] unique subdomains: $(wc -l < ${subdomains})"
-	[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-subdomains.txt
 
+	# }}
+	# {{ SUBDOMAIN TAKEOVER CHECKING
+
+	[ ${vuln_scan} == True ] && {
+		echo -e "    [${green}+${reset}] subdomain takeover scan"
+		sigstko -l ${subdomains} -s | notifier
+	}
+	
 	# }}
 	# {{ SUBDOMAINS RESOLUTION
 
@@ -196,14 +210,13 @@ main() {
 		printf "\r"
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
 		echo -e "        [${green}+${reset}] resolved subdomains: $(wc -l < ${resolved_subdomains})"
-
-		[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-resolve.txt
 	}
 
 	# }}
 	# {{ HOSTS FINDING
 
-	[ ${resolve} == True ] && [ ${httprobe} == True ] && {
+	[ ${resolve} == True ] \
+	&& [ ${httprobe} == True ] && {
 		echo -e "    [${green}+${reset}] http(s) probing"
 		hosts="${asset_discovery_output}/hosts.txt"
 		httpx -l ${resolved_subdomains} -silent | anew -q ${hosts}
@@ -212,16 +225,31 @@ main() {
 	# }}
 	# {{ HOSTS PROBING
 
-	[ ${resolve} == True ] && [ ${httprobe} == True ] && [ ${hostsprobe} == True ] && {
+	[ ${resolve} == True ] \
+	&& [ ${httprobe} == True ] \
+	&& [ ${hostsprobe} == True ] && {
 		echo -e "    [${green}+${reset}] hosts probing"
 		hosts_probe="${asset_discovery_output}/hosts-probe.json"
 		cat ${hosts} | sigurlx -request -o ${hosts_probe} -s &> /dev/null
 	}
 
 	# }}
+	# {{ DETCETING KNOWN VULNERABILITIES
+
+	[ ${resolve} == True ] \
+	&& [ ${httprobe} == True ] \
+	&& [ ${hostsprobe} == True ] \
+	&& [ ${vuln_scan} == True ] && {
+		echo -e "    [${green}+${reset}] detecting known vulnerabilities"
+		jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} | nuclei -t ~/nuclei-templates/ -exclude technologies -exclude subdomain-takeover -severity low,medium,high,critical -silent | notifier
+	}
+		
+	# }}
 	# {{ VISUAL RECONNAISSANCE
 
-	[ ${resolve} == True ] && [ ${httprobe} == True ] &&[ ${screenshot} == True ] && {
+	[ ${resolve} == True ] \
+	&& [ ${httprobe} == True ] \
+	&& [ ${screenshot} == True ] && {
 		echo -e "    [${green}+${reset}] visual reconnaissance"
 		visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
 		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
@@ -230,6 +258,8 @@ main() {
 
 	# }}
 	
+	[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-*.txt
+
 	# }}
 	# {{ CONTENT DISCOVERY
 
@@ -238,37 +268,34 @@ main() {
 		echo -e "[${green}+${reset}] content discovery"
 		[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
 
-		# {{ FINGERPRINTING
+		# {{ WEB TECHNOLOGY DETECTION
 
-		[ ${resolve} == True ] && [ ${httprobe} == True ] &&[ ${fingerprint} == True ] && {
-			echo -e "    [${green}+${reset}] fingerprinting"
-			fingerprinting_output="${content_discovery_output}/fingerprinting"
-			[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
-			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${fingerprinting_output}
+		[ ${resolve} == True ] \
+		&& [ ${httprobe} == True ] \
+		&& [ ${fingerprint} == True ] && {
+			echo -e "    [${green}+${reset}] web technology detection"
+			web_technology_output="${content_discovery_output}/web-technology"
+			[ ! -d ${web_technology_output} ] && mkdir -p ${web_technology_output}
+			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_technology_output}
 		}
 		
 		# }}
-		# {{ GATHER URLS
+		# {{ FETCH KNOWN URLS
 
-		echo -e "    [${green}+${reset}] gathering urls"
-		
-		local sigurls_output="${content_discovery_output}/temp-sigurls-urls.txt"
-
-		printf "        [${green}+${reset}] sigurls"
-		printf "\r"
-		sigurls -d ${domain} -subs -s 1> ${sigurls_output} 2> /dev/null
-		echo -e "        [${green}+${reset}] sigurls: $(wc -l < ${sigurls_output})"
-
-		local sigrawler_output="${content_discovery_output}/sigrawler.json"
-
-		printf "        [${green}+${reset}] sigrawler"
-		printf "\r"
-		cat ${hosts} ${sigurls_output} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
-		echo -e "        [${green}+${reset}] sigrawler: $(wc -l < ${sigrawler_output})"
+		echo -e "    [${green}+${reset}] fetch known urls"
+		known_urls="${content_discovery_output}/known-urls.txt"
+		sigurls -d ${domain} -subs -s 1> ${known_urls} 2> /dev/null
 
 		# }}
+		# {{ WEB CRAWLING
 
-		[ ${keep} == False ] && rm ${content_discovery_output}/temp-*-urls.txt
+		echo -e "    [${green}+${reset}] web crawling"
+		sigrawler_output="${content_discovery_output}/sigrawler.json"
+		cat ${hosts} ${known_urls} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
+
+		jq -r '.urls[]' ${sigrawler_output} | anew -q ${known_urls}
+
+		# }}
 
 	}
 	
@@ -288,6 +315,7 @@ screenshot=False
 
 content_discovery=False
 fingerprint=False
+vuln_scan=False
 
 subs_sources=(
 	amass
@@ -309,7 +337,7 @@ do
 			domain=${2}
 			shift
 		;;
-		-n)
+		-notify)
 			notify=True
 		;;
 		-h)
@@ -358,12 +386,16 @@ do
 		-x)
 			screenshot=True
 		;;
-		# CONTENT DISCOVERY
-		-cd) 
+		# CONTENT DISCOVERY OPTIONS
+		-cd)
 			content_discovery=True
 		;;
-		-f)
+		-tech-detect)
 			fingerprint=True
+		;;
+		# VULNERABILITY DISCOVERY OPTIONS
+		-vulns) 
+			vuln_scan=True
 		;;
 		# OUTPUT OPTIONS
 		-o)

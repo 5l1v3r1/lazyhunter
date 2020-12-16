@@ -48,16 +48,18 @@ $ ./autorecon -h
  \__,_|\__,_|___/\___|_|  |_| .__/ \__| v1.0.0 
 ----------------------------|_| By Dr. Signed -----
 ---------------------------------------------------
+
 USAGE:
   autorecon.sh [OPTIONS]
 
 FEATURES:
   [+] Asset Discovery
   [+] Content Discovery
+  [+] Low Hanging Vulns Discovery
 
 GENERAL OPTIONS:
   -d 		 domain to AD on
-  -n 		 send notifications
+  -notify 	 send notifications
   -h 		 display this message and exit
 
 ASSET DISCOVERY OPTIONS:
@@ -70,14 +72,16 @@ ASSET DISCOVERY OPTIONS:
 
 CONTENT DISCOVERY OPTIONS:
   -cd 		 do content discovery
-  -f 		 fingerprint web technology
+  -tech-detect 	 detect web technology used
+
+VULNERABILITY DISCOVERY OPTIONS:
+  -vulns 	 do content discovery
 
 OUTPUT OPTIONS:
   -o 		 output directory path
   -k 		 keep each tool's results
 
 HAPPY HACKING ! :)
-
 ```
 
 ## Contibution
