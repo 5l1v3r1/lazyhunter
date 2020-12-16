@@ -51,19 +51,33 @@ $ ./autorecon -h
 USAGE:
   autorecon.sh [OPTIONS]
 
-OPTIONS:
+FEATURES:
+  [+] Asset Discovery
+  [+] Content Discovery
+
+GENERAL OPTIONS:
   -d 		 domain to AD on
-  -u 		 subs' sources to use
-  -e 		 subs' sources to exclude
-  -resolve	 resolve subdomains
-  -httprobe	 HTTP(S) probe
-  -screenshot	 take screenshots
-  -o 		 output directory path
-  -k 		 keep each tool's temp results
   -n 		 send notifications
   -h 		 display this message and exit
 
+ASSET DISCOVERY OPTIONS:
+  -u 		 subs' tools to use
+  -e 		 subs' tools to exclude
+  -r 		 enable subdomains' resolution
+  -h 		 find hosts
+  -hp 		 find hosts & probe hosts
+  -x 		 web screenshot hosts
+
+CONTENT DISCOVERY OPTIONS:
+  -cd 		 do content discovery
+  -f 		 fingerprint web technology
+
+OUTPUT OPTIONS:
+  -o 		 output directory path
+  -k 		 keep each tool's results
+
 HAPPY HACKING ! :)
+
 ```
 
 ## Contibution

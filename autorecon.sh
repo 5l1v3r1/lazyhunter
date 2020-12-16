@@ -244,10 +244,7 @@ main() {
 			echo -e "    [${green}+${reset}] fingerprinting"
 			fingerprinting_output="${content_discovery_output}/fingerprinting"
 			[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
-			
-			cd ${fingerprinting_output}
-			cat ../../../${hosts} | rush 'wappalyzer {} -P > $(echo {} | urlbits format %s.%S.%r.%t).json' -j 5
-			cd - &> /dev/null
+			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${fingerprinting_output}
 		}
 		
 		# }}
