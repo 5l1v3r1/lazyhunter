@@ -8,6 +8,7 @@ reset="\e[0m"
 green="\e[32m"
 yellow="\e[33m"
 underline="\e[4m"
+
 script_file_name=${0##*/}
 
 banner() {
@@ -32,18 +33,30 @@ display_usage() {
 	\rUSAGE:
 	\r  ${script_file_name} [OPTIONS]
 
-	\rOPTIONS:
+	\rFEATURES:
+	\r  [+] Asset Discovery
+	\r  [+] Content Discovery
+
+	\rGENERAL OPTIONS:
 	\r  -d \t\t domain to AD on
-	\r  -u \t\t subs' sources to use
-	\r  -e \t\t subs' sources to exclude
-	\r  -resolve\t resolve subdomains
-	\r  -httprobe\t HTTP(S) probe
-	\r  -screenshot\t screenshot
-	\r  -map \t\t map the target
-	\r  -o \t\t output directory path
-	\r  -k \t\t keep each tool's temp results
 	\r  -n \t\t send notifications
 	\r  -h \t\t display this message and exit
+
+	\rASSET DISCOVERY OPTIONS:
+	\r  -u \t\t subs' tools to use
+	\r  -e \t\t subs' tools to exclude
+	\r  -r \t\t enable subdomains' resolution
+	\r  -h \t\t find hosts
+	\r  -hp \t\t find hosts & probe hosts
+	\r  -x \t\t web screenshot hosts
+
+	\rCONTENT DISCOVERY OPTIONS:
+	\r  -cd \t\t do content discovery
+	\r  -f \t\t fingerprint web technology
+
+	\rOUTPUT OPTIONS:
+	\r  -o \t\t output directory path
+	\r  -k \t\t keep each tool's results
 	
 	\rHAPPY HACKING ! :)
 
@@ -81,7 +94,7 @@ check_tools() {
 }
 
 _amass() {
-	local amass_output="${asset_discovery}/temp-amass-subdomains.txt"
+	local amass_output="${asset_discovery_output}/temp-amass-subdomains.txt"
 
 	printf "        [${green}+${reset}] amass"
 	printf "\r"
@@ -90,7 +103,7 @@ _amass() {
 }
 
 _sigsubs() {
-	local sigsubs_output="${asset_discovery}/temp-sigsubs-subdomains.txt"
+	local sigsubs_output="${asset_discovery_output}/temp-sigsubs-subdomains.txt"
 
 	printf "        [${green}+${reset}] sigsubs"
 	printf "\r"
@@ -99,7 +112,7 @@ _sigsubs() {
 }
 
 _findomain() {
-	local findomain_output="${asset_discovery}/temp-findomain-subdomains.txt"
+	local findomain_output="${asset_discovery_output}/temp-findomain-subdomains.txt"
 
 	printf "        [${green}+${reset}] findomain"
 	printf "\r"
@@ -108,7 +121,7 @@ _findomain() {
 }
 
 _subfinder() {
-	local subfinder_output="${asset_discovery}/temp-subfinder-subdomains.txt"
+	local subfinder_output="${asset_discovery_output}/temp-subfinder-subdomains.txt"
 
 	printf "        [${green}+${reset}] subfinder"
 	printf "\r"
@@ -117,17 +130,18 @@ _subfinder() {
 }
 
 main() {
-	check_tools; banner
+	check_tools
+	banner
 
 	# {{ ASSET DISCOVERY
 
 	echo -e "[${green}+${reset}] asset discovery"
-	[ ! -d ${asset_discovery} ] && mkdir -p ${asset_discovery}
+	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
 
 	# {{ SUNDOMAIN GATHERING
 
 	echo -e "    [${green}+${reset}] subdomains gathering"
-	subdomains="${asset_discovery}/subdomains.txt"
+	subdomains="${asset_discovery_output}/subdomains.txt"
 
 	[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
 		for source in "${subs_sources[@]}"
@@ -154,18 +168,19 @@ main() {
 		}
 	}
 
-	cat ${asset_discovery}/temp-*-subdomains.txt | sed 's#*.# #g' | anew -q ${subdomains}
+	cat ${asset_discovery_output}/temp-*-subdomains.txt | sed 's#*.# #g' | anew -q ${subdomains}
 	echo -e "        [=] unique subdomains: $(wc -l < ${subdomains})"
+	[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-subdomains.txt
 
 	# }}
 	# {{ SUBDOMAINS RESOLUTION
 
 	[ ${resolve} == True ] && {
 		echo -e "    [${green}+${reset}] subdomain resolution"
-		ips="${asset_discovery}/ips.txt"
-		resolved_subdomains="${asset_discovery}/resolved-subdomains.txt"
+		ips="${asset_discovery_output}/ips.txt"
+		resolved_subdomains="${asset_discovery_output}/resolved-subdomains.txt"
 
-		local massdns_output="${asset_discovery}/temp-massdns-resolve.txt"
+		local massdns_output="${asset_discovery_output}/temp-massdns-resolve.txt"
 
 		printf "        [${green}+${reset}] resolving"
 		printf "\r"
@@ -181,20 +196,17 @@ main() {
 		printf "\r"
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
 		echo -e "        [${green}+${reset}] resolved subdomains: $(wc -l < ${resolved_subdomains})"
+
+		[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-resolve.txt
 	}
 
 	# }}
-	# {{ HTTP(S) PROBING
+	# {{ HOSTS FINDING
 
 	[ ${resolve} == True ] && [ ${httprobe} == True ] && {
 		echo -e "    [${green}+${reset}] http(s) probing"
-		hosts="${asset_discovery}/hosts.txt"
-
-		[ ${notify} == True ] && {
-			httpx -l ${resolved_subdomains} -silent | anew ${hosts} | awk '{print new ": `" $0 "`"}' new="script4assets: New host for ${domain}" | notifier
-		} || {
-			httpx -l ${resolved_subdomains} -silent | anew -q ${hosts} 
-		}
+		hosts="${asset_discovery_output}/hosts.txt"
+		httpx -l ${resolved_subdomains} -silent | anew -q ${hosts}
 	}
 
 	# }}
@@ -202,8 +214,7 @@ main() {
 
 	[ ${resolve} == True ] && [ ${httprobe} == True ] && [ ${hostsprobe} == True ] && {
 		echo -e "    [${green}+${reset}] hosts probing"
-		hosts_probe="${asset_discovery}/hosts-probe.json"
-
+		hosts_probe="${asset_discovery_output}/hosts-probe.json"
 		cat ${hosts} | sigurlx -request -o ${hosts_probe} -s &> /dev/null
 	}
 
@@ -212,49 +223,46 @@ main() {
 
 	[ ${resolve} == True ] && [ ${httprobe} == True ] &&[ ${screenshot} == True ] && {
 		echo -e "    [${green}+${reset}] visual reconnaissance"
-		visual_reconnaissance="${asset_discovery}/visual-reconnaissance"
-
+		visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
 		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 		cat ${hosts} | aquatone -threads=5 -http-timeout 10000 -out ${visual_reconnaissance} &> /dev/null
 	}
 
 	# }}
-
-	[ ${keep} == False ] && rm ${asset_discovery}/temp-*-subdomains.txt
-	[ ${keep} == False ] && rm ${asset_discovery}/temp-*-resolve.txt
-
+	
 	# }}
-	# {{ TARGET MAPPING
+	# {{ CONTENT DISCOVERY
 
-	[ ${map_target} == True ] && {
+	[ ${content_discovery} == True ] && {
 
-		echo -e "[${green}+${reset}] target mapping"
-		[ ! -d ${content_discovery} ] && mkdir -p ${content_discovery}
+		echo -e "[${green}+${reset}] content discovery"
+		[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
 
 		# {{ FINGERPRINTING
 
-		echo -e "    [${green}+${reset}] fingerprinting"
-
-		fingerprinting_output="${content_discovery}/fingerprinting"
-		[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
-
-		cd ${fingerprinting_output}
-		cat ${hosts} | rush 'wappalyzer {} -P > $(echo {} | urlbits format %s.%S.%r.%t).json' -j 5
-		cd - &> /dev/null
+		[ ${resolve} == True ] && [ ${httprobe} == True ] &&[ ${fingerprint} == True ] && {
+			echo -e "    [${green}+${reset}] fingerprinting"
+			fingerprinting_output="${content_discovery_output}/fingerprinting"
+			[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
+			
+			cd ${fingerprinting_output}
+			cat ../../../${hosts} | rush 'wappalyzer {} -P > $(echo {} | urlbits format %s.%S.%r.%t).json' -j 5
+			cd - &> /dev/null
+		}
 		
 		# }}
 		# {{ GATHER URLS
 
 		echo -e "    [${green}+${reset}] gathering urls"
 		
-		local sigurls_output="${content_discovery}/temp-sigurls-urls.txt"
+		local sigurls_output="${content_discovery_output}/temp-sigurls-urls.txt"
 
 		printf "        [${green}+${reset}] sigurls"
 		printf "\r"
 		sigurls -d ${domain} -subs -s 1> ${sigurls_output} 2> /dev/null
 		echo -e "        [${green}+${reset}] sigurls: $(wc -l < ${sigurls_output})"
 
-		local sigrawler_output="${content_discovery}/sigrawler.json"
+		local sigrawler_output="${content_discovery_output}/sigrawler.json"
 
 		printf "        [${green}+${reset}] sigrawler"
 		printf "\r"
@@ -263,7 +271,7 @@ main() {
 
 		# }}
 
-		[ ${keep} == False ] && rm ${content_discovery}/temp-*-urls.txt
+		[ ${keep} == False ] && rm ${content_discovery_output}/temp-*-urls.txt
 
 	}
 	
@@ -275,11 +283,14 @@ main() {
 keep=False
 notify=False
 domain=False
+
 resolve=False
 httprobe=False
 hostsprobe=False
 screenshot=False
-map_target=False
+
+content_discovery=False
+fingerprint=False
 
 subs_sources=(
 	amass
@@ -290,16 +301,25 @@ subs_sources=(
 subs_sources_to_use=False
 subs_sources_to_exclude=False
 
-asset_discovery="$(pwd)/asset-discovery"
-content_discovery="$(pwd)/content-discovery"
+asset_discovery_output="$(pwd)/asset-discovery"
+content_discovery_output="$(pwd)/content-discovery"
 
 while [[ "${#}" -gt 0 && ."${1}" == .-* ]]
 do
 	case "$(echo ${1} | tr '[:upper:]' '[:lower:]')" in
+		# GENERAL OPTIONS
 		-d)
 			domain=${2}
 			shift
 		;;
+		-n)
+			notify=True
+		;;
+		-h)
+			display_usage
+			exit 0
+		;;
+		# ASSET DISCOVERY OPTIONS
 		-u)
 			subs_sources_to_use=${2}
 			subs_sources_to_use_dictionary=${subs_sources_to_use//,/ }
@@ -328,23 +348,36 @@ do
 			done
 			shift
 		;;
-		-resolve) resolve=True ;;
-		-httprobe) httprobe=True ;;
-		-hostsprobe) hostsprobe=True ;;
-		-screenshot) screenshot=True ;;
-		-map) map_target=True ;;
+		-r) 
+			resolve=True
+		;;
+		-h)
+			httprobe=True
+		;;
+		-hp)
+			httprobe=True
+			hostsprobe=True
+		;;
+		-x)
+			screenshot=True
+		;;
+		# CONTENT DISCOVERY
+		-cd) 
+			content_discovery=True
+		;;
+		-f)
+			fingerprint=True
+		;;
+		# OUTPUT OPTIONS
 		-o)
-			asset_discovery="${2}/asset-discovery"
-			content_discovery="${2}/content-discovery"
+			asset_discovery_output="${2}/asset-discovery"
+			content_discovery_output="${2}/content-discovery"
 			shift
 		;;
-		-k) keep=True ;;
-		-n) notify=True ;;
-		-h) 
-			display_usage
-			exit 0
+		-k)
+			keep=True
 		;;
-		*) 
+		*)
 			display_usage
 			exit 1
 		;;
