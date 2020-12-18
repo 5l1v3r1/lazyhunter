@@ -9,7 +9,7 @@ green="\e[32m"
 yellow="\e[33m"
 underline="\e[4m"
 
-script_file_name=${0##*/}
+script_filename=${0##*/}
 
 banner() {
 echo -e ${bold}${blue}"
@@ -31,7 +31,7 @@ display_usage() {
 		printf "%b\n" "${line}"
 	done <<-EOF
 	\rUSAGE:
-	\r  ${script_file_name} [OPTIONS]
+	\r  ${script_filename} [OPTIONS]
 
 	\rFEATURES:
 	\r  [+] Asset Discovery
@@ -71,20 +71,27 @@ check_tools() {
 	tools=(
 		jq
 		anew
-		httpx
-		amass
-		massdns
-		sigsubs
-		aquatone
 		notifier
+
+		amass
+		sigsubs
 		subfinder
 		findomain
-		sigurls
-		sigurlx
+
+		massdns
+
+		httpx
+
+		aquatone
+		
 		substko
 		nuclei
+
 		wappalyzer
 		wafw00f
+
+		sigurls
+		sigurlx
 	)
 	missing_tools=()
 
@@ -295,12 +302,14 @@ main() {
 		known_urls="${content_discovery_output}/known-urls.txt"
 		sigurls -d ${domain} -subs -s 1> ${known_urls} 2> /dev/null
 
+		cat ${hosts} | anew -q ${known_urls}
+
 		# }}
 		# {{ WEB CRAWLING
 
 		echo -e "    [${blue}+${reset}] web crawling"
 		sigrawler_output="${content_discovery_output}/sigrawler.json"
-		cat ${hosts} ${known_urls} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
+		cat ${known_urls} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
 
 		jq -r '.urls[]' ${sigrawler_output} | anew -q ${known_urls}
 
