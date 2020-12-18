@@ -290,9 +290,9 @@ main() {
 			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_technology_output}
 
 			echo -e "        [${blue}+${reset}] waf technology"
-			waf_technology_output="${content_discovery_output}/technology/web-application"
+			waf_technology_output="${content_discovery_output}/technology/waf"
 			[ ! -d ${waf_technology_output} ] && mkdir -p ${waf_technology_output}
-			cat ${hosts} | rush 'wafw00f {} > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${waf_technology_output}
+			cat ${hosts} | rush 'wafw00f {} > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).txt' -j 5 -v output_dir=${waf_technology_output}
 		}
 		
 		# }}
