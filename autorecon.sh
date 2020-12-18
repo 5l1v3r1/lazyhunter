@@ -81,8 +81,10 @@ check_tools() {
 		findomain
 		sigurls
 		sigurlx
-		sigstko
+		substko
 		nuclei
+		wappalyzer
+		wafw00f
 	)
 	missing_tools=()
 
@@ -103,37 +105,37 @@ check_tools() {
 _amass() {
 	local amass_output="${asset_discovery_output}/temp-amass-subdomains.txt"
 
-	printf "        [${green}+${reset}] amass"
+	printf "        [${blue}+${reset}] amass"
 	printf "\r"
 	amass enum -passive -d ${domain} -o ${amass_output} &> /dev/null
-	echo -e "        [${green}+${reset}] amass: $(wc -l < ${amass_output})"
+	echo -e "        [${blue}+${reset}] amass: $(wc -l < ${amass_output})"
 }
 
 _sigsubs() {
 	local sigsubs_output="${asset_discovery_output}/temp-sigsubs-subdomains.txt"
 
-	printf "        [${green}+${reset}] sigsubs"
+	printf "        [${blue}+${reset}] sigsubs"
 	printf "\r"
 	sigsubs -d ${domain} -s 1> ${sigsubs_output} 2> /dev/null
-	echo -e "        [${green}+${reset}] sigsubs: $(wc -l < ${sigsubs_output})"
+	echo -e "        [${blue}+${reset}] sigsubs: $(wc -l < ${sigsubs_output})"
 }
 
 _findomain() {
 	local findomain_output="${asset_discovery_output}/temp-findomain-subdomains.txt"
 
-	printf "        [${green}+${reset}] findomain"
+	printf "        [${blue}+${reset}] findomain"
 	printf "\r"
 	findomain -t ${domain} -q 1> ${findomain_output} 2> /dev/null
-	echo -e "        [${green}+${reset}] findomain: $(wc -l ${findomain_output} | awk '{print $1}' 2> /dev/null)"
+	echo -e "        [${blue}+${reset}] findomain: $(wc -l ${findomain_output} | awk '{print $1}' 2> /dev/null)"
 }
 
 _subfinder() {
 	local subfinder_output="${asset_discovery_output}/temp-subfinder-subdomains.txt"
 
-	printf "        [${green}+${reset}] subfinder"
+	printf "        [${blue}+${reset}] subfinder"
 	printf "\r"
 	subfinder -d ${domain} -silent 1> ${subfinder_output} 2> /dev/null
-	echo -e "        [${green}+${reset}] subfinder: $(wc -l < ${subfinder_output})"
+	echo -e "        [${blue}+${reset}] subfinder: $(wc -l < ${subfinder_output})"
 }
 
 main() {
@@ -142,12 +144,12 @@ main() {
 
 	# {{ ASSET DISCOVERY
 
-	echo -e "[${green}+${reset}] asset discovery"
+	echo -e "[${blue}+${reset}] asset discovery"
 	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
 
 	# {{ SUNDOMAIN GATHERING
 
-	echo -e "    [${green}+${reset}] subdomains gathering"
+	echo -e "    [${blue}+${reset}] gather subdomains"
 	subdomains="${asset_discovery_output}/subdomains.txt"
 
 	[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
@@ -182,34 +184,34 @@ main() {
 	# {{ SUBDOMAIN TAKEOVER CHECKING
 
 	[ ${vuln_scan} == True ] && {
-		echo -e "    [${green}+${reset}] subdomain takeover scan"
-		sigstko -l ${subdomains} -s | notifier
+		echo -e "    [${blue}+${reset}] check for stko"
+		substko -l ${subdomains} -silent | notifier
 	}
 	
 	# }}
 	# {{ SUBDOMAINS RESOLUTION
 
 	[ ${resolve} == True ] && {
-		echo -e "    [${green}+${reset}] subdomain resolution"
+		echo -e "    [${blue}+${reset}] resolve subdomain"
 		ips="${asset_discovery_output}/ips.txt"
 		resolved_subdomains="${asset_discovery_output}/resolved-subdomains.txt"
 
 		local massdns_output="${asset_discovery_output}/temp-massdns-resolve.txt"
 
-		printf "        [${green}+${reset}] resolving"
+		printf "        [${blue}+${reset}] resolving"
 		printf "\r"
 		massdns -r ${HOME}/tools/web-sec/discovery/dns/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
-		echo -e "        [${green}+${reset}] resolved!"
+		echo -e "        [${blue}+${reset}] resolved!"
 
-		printf "        [${green}+${reset}] resolved IPs"
+		printf "        [${blue}+${reset}] resolved IPs"
 		printf "\r"
 		egrep -o -h "[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}" ${massdns_output} | sort -u | anew -q ${ips}
-		echo -e "        [${green}+${reset}] resolved IPs: $(wc -l < ${ips})"
+		echo -e "        [${blue}+${reset}] resolved IPs: $(wc -l < ${ips})"
 
-		printf "        [${green}+${reset}] resolved subdomains"
+		printf "        [${blue}+${reset}] resolved subdomains"
 		printf "\r"
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
-		echo -e "        [${green}+${reset}] resolved subdomains: $(wc -l < ${resolved_subdomains})"
+		echo -e "        [${blue}+${reset}] resolved subdomains: $(wc -l < ${resolved_subdomains})"
 	}
 
 	# }}
@@ -217,7 +219,7 @@ main() {
 
 	[ ${resolve} == True ] \
 	&& [ ${httprobe} == True ] && {
-		echo -e "    [${green}+${reset}] http(s) probing"
+		echo -e "    [${blue}+${reset}] probe http(s)"
 		hosts="${asset_discovery_output}/hosts.txt"
 		httpx -l ${resolved_subdomains} -silent | anew -q ${hosts}
 	}
@@ -228,7 +230,7 @@ main() {
 	[ ${resolve} == True ] \
 	&& [ ${httprobe} == True ] \
 	&& [ ${hostsprobe} == True ] && {
-		echo -e "    [${green}+${reset}] hosts probing"
+		echo -e "    [${blue}+${reset}] probe hosts"
 		hosts_probe="${asset_discovery_output}/hosts-probe.json"
 		cat ${hosts} | sigurlx -request -o ${hosts_probe} -s &> /dev/null
 	}
@@ -240,7 +242,7 @@ main() {
 	&& [ ${httprobe} == True ] \
 	&& [ ${hostsprobe} == True ] \
 	&& [ ${vuln_scan} == True ] && {
-		echo -e "    [${green}+${reset}] detecting known vulnerabilities"
+		echo -e "    [${blue}+${reset}] check known vulns"
 		jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} | nuclei -t ~/nuclei-templates/ -exclude technologies -exclude subdomain-takeover -severity low,medium,high,critical -silent | notifier
 	}
 		
@@ -250,7 +252,7 @@ main() {
 	[ ${resolve} == True ] \
 	&& [ ${httprobe} == True ] \
 	&& [ ${screenshot} == True ] && {
-		echo -e "    [${green}+${reset}] visual reconnaissance"
+		echo -e "    [${blue}+${reset}] visual reconnaissance"
 		visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
 		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 		cat ${hosts} | aquatone -threads=5 -http-timeout 10000 -out ${visual_reconnaissance} &> /dev/null
@@ -265,40 +267,61 @@ main() {
 
 	[ ${content_discovery} == True ] && {
 
-		echo -e "[${green}+${reset}] content discovery"
+		echo -e "[${blue}+${reset}] content discovery"
 		[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
 
-		# {{ WEB TECHNOLOGY DETECTION
+		# {{ TECHNOLOGY DETECTION
 
 		[ ${resolve} == True ] \
 		&& [ ${httprobe} == True ] \
 		&& [ ${fingerprint} == True ] && {
-			echo -e "    [${green}+${reset}] web technology detection"
-			web_technology_output="${content_discovery_output}/web-technology"
+			echo -e "    [${blue}+${reset}] technology detection"
+
+			echo -e "        [${blue}+${reset}] web application technology"
+			web_technology_output="${content_discovery_output}/technology/web-application"
 			[ ! -d ${web_technology_output} ] && mkdir -p ${web_technology_output}
 			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_technology_output}
+
+			echo -e "        [${blue}+${reset}] waf technology"
+			waf_technology_output="${content_discovery_output}/technology/web-application"
+			[ ! -d ${waf_technology_output} ] && mkdir -p ${waf_technology_output}
+			cat ${hosts} | rush 'wafw00f {} > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${waf_technology_output}
 		}
 		
 		# }}
 		# {{ FETCH KNOWN URLS
 
-		echo -e "    [${green}+${reset}] fetch known urls"
+		echo -e "    [${blue}+${reset}] fetch known urls"
 		known_urls="${content_discovery_output}/known-urls.txt"
 		sigurls -d ${domain} -subs -s 1> ${known_urls} 2> /dev/null
 
 		# }}
 		# {{ WEB CRAWLING
 
-		echo -e "    [${green}+${reset}] web crawling"
+		echo -e "    [${blue}+${reset}] web crawling"
 		sigrawler_output="${content_discovery_output}/sigrawler.json"
 		cat ${hosts} ${known_urls} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
 
 		jq -r '.urls[]' ${sigrawler_output} | anew -q ${known_urls}
 
 		# }}
+		# {{ CATEGORIZE URLS
+
+		echo -e "    [${blue}+${reset}] categorize urls"
+		url_categories="${content_discovery_output}/url-categories.json"
+		cat ${known_urls} | sigurlx -cat -o ${url_categories} -s &> /dev/null
+
+		# }}
+		# {{ PROBE URLS
+
+		echo -e "    [${blue}+${reset}] probe endpoints"
+		endpoint_probes="${content_discovery_output}/endpoints-probe.json"
+		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -cat -param-scan -request -t 100 -s -o ${endpoint_probes} &> /dev/null
+
+		# }}
 
 	}
-	
+
 	# }}
 
 	echo -e ${bold}${blue}"\n- DONE! -------------------------------------------"${reset}
