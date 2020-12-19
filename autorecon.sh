@@ -207,7 +207,7 @@ main() {
 
 		printf "        [${blue}+${reset}] resolving"
 		printf "\r"
-		massdns -r ${HOME}/tools/web-sec/discovery/dns/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
+		massdns -r ${HOME}/tools/reconnaissance/dns-resolution/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
 		echo -e "        [${blue}+${reset}] resolved!"
 
 		printf "        [${blue}+${reset}] resolved IPs"
@@ -302,14 +302,14 @@ main() {
 		known_urls="${content_discovery_output}/known-urls.txt"
 		sigurls -d ${domain} -subs -s 1> ${known_urls} 2> /dev/null
 
-		cat ${hosts} | anew -q ${known_urls}
+		# cat ${hosts} | anew -q ${known_urls}
 
 		# }}
 		# {{ WEB CRAWLING
 
 		echo -e "    [${blue}+${reset}] web crawling"
 		sigrawler_output="${content_discovery_output}/sigrawler.json"
-		cat ${known_urls} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
+		cat ${hosts} ${known_urls} | sigrawler -subs -depth 3 -insecure -o ${sigrawler_output} &> /dev/null
 
 		jq -r '.urls[]' ${sigrawler_output} | anew -q ${known_urls}
 
