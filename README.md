@@ -1,6 +1,6 @@
-# autorecon
+# hunter
 
-![made with bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/autorecon/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
+![made with bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/hunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/hunter/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/hunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/hunter/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/hunter/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
 
 A wrapper, bash script, around tools I use for assets discovery to automate my workflow.
 
@@ -9,7 +9,7 @@ A wrapper, bash script, around tools I use for assets discovery to automate my w
 To get the script clone this repository:
 
 ```bash
-$ git clone https://github.com/drsigned/autorecon.git
+$ git clone https://github.com/drsigned/hunter.git
 ```
 
 ## Usage
@@ -17,18 +17,18 @@ $ git clone https://github.com/drsigned/autorecon.git
 To display this script's help message, use the `-h` flag:
 
 ```
-$ ./autorecon -h
+$ ./hunter -h
 
-           _               _       _   
-  __ _  __| |___  ___ _ __(_)_ __ | |_ 
- / _` |/ _` / __|/ __| '__| | '_ \| __|
-| (_| | (_| \__ \ (__| |  | | |_) | |_ 
- \__,_|\__,_|___/\___|_|  |_| .__/ \__| v1.0.0 
-----------------------------|_| By Dr. Signed -----
----------------------------------------------------
+ _                 _
+| |__  _   _ _ __ | |_ ___ _ __
+| '_ \| | | | '_ \| __/ _ \ '__|
+| | | | |_| | | | | ||  __/ |
+|_| |_|\__,_|_| |_|\__\___|_|
+ v1.0.0 ----------------------------------------------
+------------------------------------------------------
 
 USAGE:
-  autorecon.sh [OPTIONS]
+  hunter.sh [OPTIONS]
 
 FEATURES:
   [+] Asset Discovery
@@ -64,4 +64,4 @@ HAPPY HACKING ! :)
 
 ## Contibution
 
-[Issues](https://github.com/drsigned/autorecon/issues) and [Pull Requests](https://github.com/drsigned/autorecon/pulls) are welcome!
+[Issues](https://github.com/drsigned/hunter/issues) and [Pull Requests](https://github.com/drsigned/hunter/pulls) are welcome!
