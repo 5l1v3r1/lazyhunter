@@ -41,12 +41,12 @@ GENERAL OPTIONS:
   -h 		 display this message and exit
 
 ASSET DISCOVERY OPTIONS:
-  -u 		 subs' tools to use
-  -e 		 subs' tools to exclude
-  -r 		 enable subdomains' resolution
-  -h 		 find hosts
-  -hp 		 find hosts & probe hosts
-  -x 		 web screenshot hosts
+  -use 		 tools to use
+  -exclude 	 tools to exclude
+  -r 		 resolve subdomains
+  -rh 		 resolve subdomains & httprobe
+  -rhp 		 resolve subdomains, httprobe & probe hosts
+  -rhpx 	 resolve subdomains, httprobe, probe hosts & screenshot
 
 CONTENT DISCOVERY OPTIONS:
   -cd 		 do content discovery
