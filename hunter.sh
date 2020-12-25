@@ -356,7 +356,7 @@ main() {
 
 		echo -e "    [${blue}+${reset}] endpoints probing"
 		endpoint_probes="${content_discovery_output}/endpoints-probe.json"
-		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -cat -param-scan -request -t 100 -oJ ${endpoint_probes} -s &> /dev/null
+		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -cat -param-scan -request -timeout 100 -oJ ${endpoint_probes} -s &> /dev/null
 
 		# }}
 
