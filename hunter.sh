@@ -245,7 +245,7 @@ main() {
 	&& [ ${hostsprobe} == True ] && {
 		echo -e "    [${blue}+${reset}] hosts probing"
 		hosts_probe="${asset_discovery_output}/hosts-probe.json"
-		cat ${hosts} | sigurlx -request -o ${hosts_probe} -s &> /dev/null
+		cat ${hosts} | sigurlx -request -oJ ${hosts_probe} -s &> /dev/null
 	}
 
 	# }}
@@ -315,16 +315,17 @@ main() {
 		&& [ ${httprobe} == True ] \
 		&& [ ${fingerprint} == True ] && {
 			echo -e "    [${blue}+${reset}] technology detection"
-
-			echo -e "        [${blue}+${reset}] web application technology"
-			web_technology_output="${content_discovery_output}/technology/web-application"
-			[ ! -d ${web_technology_output} ] && mkdir -p ${web_technology_output}
-			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_technology_output}
+			technology_output="${content_discovery_output}/technology"
+			[ ! -d ${technology_output} ] && mkdir -p ${technology_output}
 
 			echo -e "        [${blue}+${reset}] waf technology"
-			waf_technology_output="${content_discovery_output}/technology/waf"
-			[ ! -d ${waf_technology_output} ] && mkdir -p ${waf_technology_output}
-			cat ${hosts} | rush 'wafw00f {} > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).txt' -j 5 -v output_dir=${waf_technology_output}
+			waf_technology_output="${technology_output}/waf.json"
+			wafw00f -i ${hosts} -o ${waf_technology_output} &> /dev/null
+
+			echo -e "        [${blue}+${reset}] web application technology"
+			web_technology_output="${technology_output}/web-application"
+			[ ! -d ${web_technology_output} ] && mkdir -p ${web_technology_output}
+			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_technology_output}
 		}
 		
 		# }}
