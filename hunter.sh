@@ -123,7 +123,7 @@ _sigsubs() {
 
 	printf "        [${blue}+${reset}] sigsubs"
 	printf "\r"
-	sigsubs -d ${domain} -s 1> ${sigsubs_output} 2> /dev/null
+	sigsubs -d ${domain} -silent 1> ${sigsubs_output} 2> /dev/null
 	echo -e "        [${blue}+${reset}] sigsubs: $(wc -l < ${sigsubs_output})"
 }
 
@@ -332,7 +332,7 @@ main() {
 
 		echo -e "    [${blue}+${reset}] urls fetching"
 		known_urls="${content_discovery_output}/known-urls.txt"
-		sigurls -d ${domain} -subs -s 1> ${known_urls} 2> /dev/null
+		sigurls -d ${domain} -iS -silent 1> ${known_urls} 2> /dev/null
 
 		# }}
 		# {{ CONTENT DISCOVERY: WEB CRAWLING
@@ -348,14 +348,14 @@ main() {
 
 		echo -e "    [${blue}+${reset}] urls categorizing"
 		url_categories="${content_discovery_output}/url-categories.json"
-		cat ${known_urls} | sigurlx -cat -o ${url_categories} -s &> /dev/null
+		cat ${known_urls} | sigurlx -cat -oJ ${url_categories} -s &> /dev/null
 
 		# }}
 		# {{ CONTENT DISCOVERY: ENDPOINTS PROBING
 
 		echo -e "    [${blue}+${reset}] endpoints probing"
 		endpoint_probes="${content_discovery_output}/endpoints-probe.json"
-		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -cat -param-scan -request -t 100 -s -o ${endpoint_probes} &> /dev/null
+		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -cat -param-scan -request -t 100 -oJ ${endpoint_probes} -s &> /dev/null
 
 		# }}
 
