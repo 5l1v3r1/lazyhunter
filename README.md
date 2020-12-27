@@ -1,6 +1,6 @@
-# hunter
+# Dr. Signed's Automatic Recon Script
 
-![made with bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/hunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/hunter/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/hunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/hunter/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/hunter/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
+![made with bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/autorecon/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
 
 A wrapper, bash script, around tools I use for assets discovery to automate my workflow.
 
@@ -9,7 +9,7 @@ A wrapper, bash script, around tools I use for assets discovery to automate my w
 To get the script clone this repository:
 
 ```bash
-$ git clone https://github.com/drsigned/hunter.git
+$ git clone https://github.com/drsigned/autorecon.git
 ```
 
 ## Usage
@@ -17,18 +17,19 @@ $ git clone https://github.com/drsigned/hunter.git
 To display this script's help message, use the `-h` flag:
 
 ```
-$ ./hunter -h
+$ ./autorecon -h
 
- _                 _
-| |__  _   _ _ __ | |_ ___ _ __
-| '_ \| | | | '_ \| __/ _ \ '__|
-| | | | |_| | | | | ||  __/ |
-|_| |_|\__,_|_| |_|\__\___|_|
+ ____         ____  _                      _ _     
+|  _ \ _ __  / ___|(_) __ _ _ __   ___  __| ( )___ 
+| | | | '__| \___ \| |/ _` | '_ \ / _ \/ _` |// __|
+| |_| | | _   ___) | | (_| | | | |  __/ (_| | \__ \
+|____/|_|(_) |____/|_|\__, |_| |_|\___|\__,_| |___/
+                      |___/ Automatic Recon Script
  v1.0.0 ----------------------------------------------
 ------------------------------------------------------
 
 USAGE:
-  hunter.sh [OPTIONS]
+  autorecon [OPTIONS]
 
 FEATURES:
   [+] Asset Discovery
@@ -64,4 +65,4 @@ HAPPY HACKING ! :)
 
 ## Contibution
 
-[Issues](https://github.com/drsigned/hunter/issues) and [Pull Requests](https://github.com/drsigned/hunter/pulls) are welcome!
+[Issues](https://github.com/drsigned/autorecon/issues) and [Pull Requests](https://github.com/drsigned/autorecon/pulls) are welcome!
