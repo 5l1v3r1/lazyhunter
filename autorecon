@@ -8,24 +8,23 @@ reset="\e[0m"
 green="\e[32m"
 yellow="\e[33m"
 underline="\e[4m"
-
 script_filename=${0##*/}
 
-banner() {
+display_banner() {
 echo -e ${bold}${blue}"
  ____         ____  _                      _ _     
 |  _ \ _ __  / ___|(_) __ _ _ __   ___  __| ( )___ 
 | | | | '__| \___ \| |/ _\` | '_ \ / _ \/ _\` |// __|
 | |_| | | _   ___) | | (_| | | | |  __/ (_| | \__ \\
 |____/|_|(_) |____/|_|\__, |_| |_|\___|\__,_| |___/
-                      |___/ Automatic Recon Script
- ${green}v1.0.0${blue} ----------------------------------------------
+                      |___/ ${yellow}Automatic Recon Script${red}
+ v1.0.0${blue} ----------------------------------------------
 ------------------------------------------------------
 "${reset}
 }
 
 display_usage() {
-	banner
+	display_banner
 
 	while read -r line
 	do
@@ -34,15 +33,10 @@ display_usage() {
 	\rUSAGE:
 	\r  ${script_filename} [OPTIONS]
 
-	\rFEATURES:
-	\r  [+] Asset Discovery
-	\r  [+] Content Discovery
-	\r  [+] Low Hanging Vulns Discovery
-
 	\rGENERAL OPTIONS:
-	\r  -d \t\t domain to AD on
-	\r  -notify \t send notifications
-	\r  -h \t\t display this message and exit
+	\r  -d \t\t domain to recon on
+	\r  -notify \t send notifications (via notifier)
+	\r  -h \t\t display this help message and exit
 
 	\rASSET DISCOVERY OPTIONS:
 	\r  -use \t\t tools to use
@@ -70,29 +64,31 @@ EOF
 
 check_tools() {
 	tools=(
-		jq
-		anew
-		notifier
-
+		# subs enumeration
 		amass
 		sigsubs
 		subfinder
 		findomain
-
+		# subs resolution
 		massdns
-
+		# http(s) probing
 		httpx
-
+		# screenshot
 		aquatone
 		
-		substko
+		# substko
 		nuclei
-
+		# fingerprint
 		wappalyzer
 		wafw00f
 
 		sigurls
-		sigurlx
+		# sigurlx
+		# notification
+		notifier
+		# misc
+		anew
+		jq
 	)
 	missing_tools=()
 
@@ -148,16 +144,16 @@ _subfinder() {
 
 main() {
 	check_tools
-	banner
+	display_banner
 
 	# {{ ASSET DISCOVERY
 
 	echo -e "[${blue}+${reset}] asset discovery"
 	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
 
-	# {{ ASSET DISCOVERY: SUNDOMAIN GATHERING
+	# {{ ASSET DISCOVERY: SUNDOMAIN ENUMERATION
 
-	echo -e "    [${blue}+${reset}] subdomains gathering"
+	echo -e "    [${blue}+${reset}] subdomains enumeration"
 	subdomains="${asset_discovery_output}/subdomains.txt"
 
 	[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
@@ -191,16 +187,16 @@ main() {
 	# }}
 	# {{ VULNERABILITY: SUBDOMAIN TAKEOVER
 
-	[ ${vuln_scan} == True ] && {
-		echo -e "    [${blue}+${reset}] subdomain takeover"
-		substko_output="${asset_discovery_output}/substko-output.txt"
+	# [ ${vuln_scan} == True ] && {
+	# 	echo -e "    [${blue}+${reset}] subdomain takeover"
+	# 	substko_output="${asset_discovery_output}/substko-output.txt"
 
-		substko -l ${subdomains} -silent > ${substko_output} 
+	# 	substko -l ${subdomains} -silent > ${substko_output} 
 
-		[ ${notify} == True ] && {
-			substko -l ${subdomains} -silent | tee ${substko_output} | notifier
-		}
-	}
+	# 	[ ${notify} == True ] && {
+	# 		substko -l ${subdomains} -silent | tee ${substko_output} | notifier
+	# 	}
+	# }
 	
 	# }}
 	# {{ ASSET DISCOVERY: SUBDOMAINS RESOLUTION
@@ -214,7 +210,7 @@ main() {
 
 		printf "        [${blue}+${reset}] resolving"
 		printf "\r"
-		massdns -r ${HOME}/tools/reconnaissance/dns-resolution/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
+		massdns -r ${HOME}/tools/web/recon/dns-resolution/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
 		echo -e "        [${blue}+${reset}] resolved!"
 
 		printf "        [${blue}+${reset}] resolved IPs"
@@ -239,54 +235,6 @@ main() {
 	}
 
 	# }}
-	# {{ ASSET DISCOVERY: HOSTS PROBING
-
-	[ ${resolve} == True ] \
-	&& [ ${httprobe} == True ] \
-	&& [ ${hostsprobe} == True ] && {
-		echo -e "    [${blue}+${reset}] hosts probing"
-		hosts_probe="${asset_discovery_output}/hosts-probe.json"
-		cat ${hosts} | sigurlx -request -oJ ${hosts_probe} -s &> /dev/null
-	}
-
-	# }}
-	# {{ VULNERABILITY: DETCETING KNOWN VULNERABILITIES
-
-	[ ${resolve} == True ] \
-	&& [ ${httprobe} == True ] \
-	&& [ ${hostsprobe} == True ] \
-	&& [ ${vuln_scan} == True ] && {
-		echo -e "    [${blue}+${reset}] check known vulns"
-		nuclei_output="${asset_discovery_output}/nuclei-output.txt"
-
-		[ ${notify} == True ] && {
-			jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} \
-			| nuclei \
-				-t ~/nuclei-templates/dns \
-				-t ~/nuclei-templates/misc \
-				-t ~/nuclei-templates/cves \
-				-t ~/nuclei-templates/files \
-				-t ~/nuclei-templates/vulnerabilities \
-				-t ~/nuclei-templates/security-misconfiguration \
-				-severity low,medium,high,critical -silent | tee ${nuclei_output} | notifier
-		}
-	}
-
-	# }}
-	# {{ VULNERABILITY: CORS MISCONFIGURATION
-
-	[ ${resolve} == True ] \
-	&& [ ${httprobe} == True ] \
-	&& [ ${hostsprobe} == True ] \
-	&& [ ${vuln_scan} == True ] && {
-		echo -e "    [${blue}+${reset}] cors misconfiguration"
-		corsmisc_output="${asset_discovery_output}/corsmisc.json"
-		[ ${notify} == True ] && {
-			jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} | corsmisc -urls - -o ${corsmisc_output} -s | notifier
-		}
-	}
-	
-	# }}
 	# {{ ASSET DISCOVERY: VISUAL RECONNAISSANCE
 
 	[ ${resolve} == True ] \
@@ -295,9 +243,57 @@ main() {
 		echo -e "    [${blue}+${reset}] visual reconnaissance"
 		visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
 		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
-		cat ${hosts} | aquatone -threads=5 -http-timeout 1000 -out ${visual_reconnaissance} &> /dev/null
+		cat ${hosts} | aquatone --ports xlarge -out ${visual_reconnaissance} -scan-timeout 500 -screenshot-timeout 50000 -http-timeout 6000 -silent &> /dev/null
 	}
 
+	# }}
+	# {{ ASSET DISCOVERY: HOSTS PROBING
+
+	# [ ${resolve} == True ] \
+	# && [ ${httprobe} == True ] \
+	# && [ ${hostsprobe} == True ] && {
+	# 	echo -e "    [${blue}+${reset}] hosts probing"
+	# 	hosts_probe="${asset_discovery_output}/hosts-probe.json"
+	# 	cat ${hosts} | sigurlx -request -oJ ${hosts_probe} -s &> /dev/null
+	# }
+
+	# }}
+	# {{ VULNERABILITY: DETCETING KNOWN VULNERABILITIES
+
+	# [ ${resolve} == True ] \
+	# && [ ${httprobe} == True ] \
+	# && [ ${hostsprobe} == True ] \
+	# && [ ${vuln_scan} == True ] && {
+	# 	echo -e "    [${blue}+${reset}] check known vulns"
+	# 	nuclei_output="${asset_discovery_output}/nuclei-output.txt"
+
+	# 	[ ${notify} == True ] && {
+	# 		jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} \
+	# 		| nuclei \
+	# 			-t ~/nuclei-templates/dns \
+	# 			-t ~/nuclei-templates/misc \
+	# 			-t ~/nuclei-templates/cves \
+	# 			-t ~/nuclei-templates/files \
+	# 			-t ~/nuclei-templates/vulnerabilities \
+	# 			-t ~/nuclei-templates/security-misconfiguration \
+	# 			-severity low,medium,high,critical -silent | tee ${nuclei_output} | notifier
+	# 	}
+	# }
+
+	# }}
+	# {{ VULNERABILITY: CORS MISCONFIGURATION
+
+	# [ ${resolve} == True ] \
+	# && [ ${httprobe} == True ] \
+	# && [ ${hostsprobe} == True ] \
+	# && [ ${vuln_scan} == True ] && {
+	# 	echo -e "    [${blue}+${reset}] cors misconfiguration"
+	# 	corsmisc_output="${asset_discovery_output}/corsmisc.json"
+	# 	[ ${notify} == True ] && {
+	# 		jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} | corsmisc -urls - -o ${corsmisc_output} -s | notifier
+	# 	}
+	# }
+	
 	# }}
 	
 	[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-*.txt
@@ -332,32 +328,33 @@ main() {
 		# }}
 		# {{ CONTENT DISCOVERY: FETCH KNOWN URLS
 
-		echo -e "    [${blue}+${reset}] urls fetching"
+		echo -e "    [${blue}+${reset}] urls fetching (sigurls)"
 		known_urls="${content_discovery_output}/known-urls.txt"
 		sigurls -d ${domain} -iS -silent 1> ${known_urls} 2> /dev/null
 
 		# }}
 		# {{ CONTENT DISCOVERY: WEB CRAWLING
 
-		echo -e "    [${blue}+${reset}] web crawling"
+		echo -e "    [${blue}+${reset}] web crawling (sigrawler)"
 		sigrawler_output="${content_discovery_output}/sigrawler.json"
 		cat ${hosts} ${known_urls} | sigrawler -subs -depth 3 -o ${sigrawler_output} &> /dev/null
 
+		# }}
+
 		jq -r '.urls[]' ${sigrawler_output} | anew -q ${known_urls}
 
-		# }}
 		# {{ CONTENT DISCOVERY: URLS CATEGORIZING
 
 		echo -e "    [${blue}+${reset}] urls categorizing"
 		url_categories="${content_discovery_output}/url-categories.json"
-		cat ${known_urls} | sigurlx -cat -oJ ${url_categories} -s &> /dev/null
+		sigurlx -iL ${known_urls} -c -oJ ${url_categories} -s &> /dev/null
 
 		# }}
 		# {{ CONTENT DISCOVERY: ENDPOINTS PROBING
 
 		echo -e "    [${blue}+${reset}] endpoints probing"
 		endpoint_probes="${content_discovery_output}/endpoints-probe.json"
-		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -cat -param-scan -request -timeout 100 -oJ ${endpoint_probes} -s &> /dev/null
+		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -iL - -c -p -oJ ${endpoint_probes} -s &> /dev/null
 
 		# }}
 
@@ -368,18 +365,18 @@ main() {
 	echo -e ${bold}${blue}"\n- DONE! ----------------------------------------------"${reset}
 }
 
+# START RUNNING SCRIPT
+
 keep=False
 notify=False
 domain=False
-
 resolve=False
 httprobe=False
+vuln_scan=False
 hostsprobe=False
 screenshot=False
-
-content_discovery=False
 fingerprint=False
-vuln_scan=False
+content_discovery=False
 
 subs_sources=(
 	amass
@@ -443,6 +440,11 @@ do
 		-rh)
 			resolve=True
 			httprobe=True
+		;;
+		-rhx)
+			resolve=True
+			httprobe=True
+			screenshot=True
 		;;
 		-rhp)
 			resolve=True

@@ -31,11 +31,6 @@ $ ./autorecon -h
 USAGE:
   autorecon [OPTIONS]
 
-FEATURES:
-  [+] Asset Discovery
-  [+] Content Discovery
-  [+] Low Hanging Vulns Discovery
-
 GENERAL OPTIONS:
   -d 		 domain to AD on
   -notify 	 send notifications
