@@ -40,15 +40,16 @@ display_usage() {
 
 	\rASSET DISCOVERY OPTIONS:
 	\r  -r \t\t resolve
-	\r  -hp \t\t http(s) probe
-	\r  -ph \t\t ffuf http(s) hosts
-	\r  -x \t\t screenshot http(s) hosts
+	\r  -hP \t\t httprobe
+	\r  -x \t\t screenshot
+	\r  -pH \t\t probe hosts
 	\r  -use \t\t comma(,) separated subs enum tools to use
 	\r  -exclude \t comma(,) separated subs enum tools to exclude
 
 	\rCONTENT DISCOVERY OPTIONS:
 	\r  -f \t\t fingerprint hosts
 	\r  -c \t\t crawl/spider the hosts
+	\r  -pU \t\t probe urls
 
 	\rOUTPUT OPTIONS:
 	\r  -k \t\t keep each tool's results
@@ -59,8 +60,11 @@ display_usage() {
 EOF
 }
 
-check_tools() {
+ensure_tools_are_setup() {
 	tools=(
+		jq
+		anew
+		notifier
 		# subs enumeration
 		amass
 		sigsubs
@@ -80,16 +84,8 @@ check_tools() {
 		# crawl
 		sigurls
 		sigrawler
-		
-		# substko
-		nuclei
-
-		# sigurlx
-		# notification
-		notifier
-		# misc
-		anew
-		jq
+		# probe urls
+		sigurlx
 	)
 	missing_tools=()
 
@@ -102,7 +98,8 @@ check_tools() {
 
 	[ ${#missing_tools[@]} -gt 0 ] && {
 		missing_tools_str="${missing_tools[@]}"
-		echo -e "\n[-] failed! missing tool(s) : " ${missing_tools_str// /,}"\n"
+		echo -e "\n[${red}-${reset}] failed! missing tool(s) : " ${missing_tools_str// /,}
+		echo -e "[${yellow}!${reset}] tools not installed or missing in PATH.\n"
 		exit 1
 	}
 }
@@ -144,8 +141,8 @@ _subfinder() {
 }
 
 main() {
-	check_tools
 	display_banner
+	ensure_tools_are_setup
 
 	# {{ ASSET DISCOVERY
 
@@ -153,17 +150,17 @@ main() {
 
 	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
 
-	ips="${asset_discovery_output}/ips.txt"
-	hosts="${asset_discovery_output}/hosts.txt"
-	s3_buckets="${asset_discovery_output}/s3.txt"
 	subdomains="${asset_discovery_output}/subdomains.txt"
 	resolved_subdomains="${asset_discovery_output}/resolved-subdomains.txt"
-	hosts_ffuf_output="${asset_discovery_output}/hosts-probe.json"
+	IP_addresses="${asset_discovery_output}/ips.txt"
+	s3_buckets="${asset_discovery_output}/s3.txt"
+	hosts="${asset_discovery_output}/hosts.txt"
+	hosts_probe="${asset_discovery_output}/hosts-probe.json"
 	visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
 
 	# {{ ASSET DISCOVERY: SUNDOMAIN ENUMERATION
 
-	echo -e "    [${blue}+${reset}] subdomains enumeration"
+	echo -e "    [${blue}+${reset}] gather subs"
 
 	[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
 		for source in "${subs_sources[@]}"
@@ -197,54 +194,46 @@ main() {
 	# {{ ASSET DISCOVERY: SUBDOMAINS RESOLUTION
 
 	[ ${resolve} == True ] && [ -f ${subdomains} ] && {
-		echo -e "    [${blue}+${reset}] subdomains resolution"
+		echo -e "    [${blue}+${reset}] resolve subs"
 
 		local massdns_output="${asset_discovery_output}/temp-massdns-resolve.txt"
-
-		printf "        [${blue}+${reset}] resolving"
-		printf "\r"
 		massdns -r ${HOME}/tools/web/recon/dns-resolution/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
-		echo -e "        [${blue}+${reset}] resolved!"
 
-		printf "        [${blue}+${reset}] IPs"
-		printf "\r"
-		cat ${massdns_output} | grep -o -h "[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}" | sort -u | anew -q ${ips}
-		echo -e "        [${blue}+${reset}] IPs: $(wc -l < ${ips})"
+		echo -e "        [${blue}+${reset}] extact:"
 
-		printf "        [${blue}+${reset}] s3 buckets"
-		printf "\r"
+		cat ${massdns_output} | grep -Po "[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}" | sort -u | anew -q ${IP_addresses}
+		echo -e "            [${blue}+${reset}] IPs: $(wc -l < ${IP_addresses})"
+
 		cat ${massdns_output} | grep -Po "([a-z0-9.-]+\\.s3\\.amazonaws\\.com|[a-z0-9.-]+\\.s3-[a-z0-9-]\\.amazonaws\\.com|[a-z0-9.-]+\\.s3-website[.-](eu|ap|us|ca|sa|cn)|//s3\\.amazonaws\\.com/[a-z0-9._-]+|//s3-[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._-]+)" | sort -u | anew -q ${s3_buckets}
-		echo -e "        [${blue}+${reset}] s3 buckets: $(wc -l < ${s3_buckets})"
+		echo -e "            [${blue}+${reset}] s3 buckets: $(wc -l < ${s3_buckets})"
 
-		printf "        [${blue}+${reset}] subdomains"
-		printf "\r"
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
-		echo -e "        [${blue}+${reset}] subdomains: $(wc -l < ${resolved_subdomains})"
+		echo -e "            [${blue}+${reset}] subdomains: $(wc -l < ${resolved_subdomains})"
 	}
 
 	# }}
-	# {{ ASSET DISCOVERY: HTTP(S) PROBING
+	# {{ ASSET DISCOVERY: HTTP PROBE
 
 	[ ${httprobe} == True ] && [ -f ${resolved_subdomains} ] && {
-		echo -e "    [${blue}+${reset}] http(s) probing"
+		echo -e "    [${blue}+${reset}] http probe"
 
 		httpx -l ${resolved_subdomains} -silent | anew -q ${hosts}
 	}
 
 	# }}
-	# {{ ASSET DISCOVERY: HOSTS PROBING
+	# {{ ASSET DISCOVERY: HOSTS PROBE
 
-	[ ${hostsprobe} == True ] && [ -f ${hosts} ] && {
-		echo -e "    [${blue}+${reset}] ffuf http(s) hosts"
+	[ ${probe_hosts} == True ] && [ -f ${hosts} ] && {
+		echo -e "    [${blue}+${reset}] probe hosts"
 
-		ffuf -w ${hosts} -u FUZZ -mc all -o ${hosts_ffuf_output} -of json &> /dev/null
+		ffuf -w ${hosts} -u FUZZ -mc all -o ${hosts_probe} -of json &> /dev/null
 	}
 
 	# }}
-	# {{ ASSET DISCOVERY: VISUAL RECONNAISSANCE
+	# {{ ASSET DISCOVERY: SCREENSHOT
 
 	[ ${screenshot} == True ] && [ -f ${hosts} ] && {
-		echo -e "    [${blue}+${reset}] visual reconnaissance"
+		echo -e "    [${blue}+${reset}] screenshot"
 
 		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 
@@ -263,12 +252,13 @@ main() {
 	[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
 
 	urls="${content_discovery_output}/urls.txt"
-	sigrawler_output="${content_discovery_output}/sigrawler.json"
+	urls_categories="${content_discovery_output}/urls-categories.json"
+	endpoints_probe="${content_discovery_output}/endpoints-probe.json"
 
 	# {{ CONTENT DISCOVERY: FINGERPRINT
 
 	[ ${fingerprint} == True ] && [ -f ${hosts} ] && {
-		echo -e "    [${blue}+${reset}] fingerprint"
+		echo -e "    [${blue}+${reset}] tech detect"
 		fingerprinting_output="${content_discovery_output}/technology"
 
 		[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
@@ -296,20 +286,45 @@ main() {
 		sigurls -d ${domain} -iS -silent 1> ${urls} 2> /dev/null
 		echo -e "        [${green}*${reset}] sigurls"
 
-		printf "        [${blue}+${reset}] sigrawler"
-		printf "\r"
+		local sigrawler_output="${content_discovery_output}/temp-sigrawler.json"
+
+		echo -e "        [${blue}+${reset}] sigrawler"
 		[ -f ${hosts} ] && {
 			cat ${hosts} ${urls} | sigrawler -iL - -iS -depth 3 -oJ ${sigrawler_output} &> /dev/null
 		} || {
 			cat ${urls} | sigrawler -iL - -iS -depth 3 -oJ ${sigrawler_output} &> /dev/null
 		}
-		echo -e "        [${green}*${reset}] sigrawler"
+
+		echo -e "            [${green}+${reset}] extract:"
 
 		jq -r '.s3[]?' ${sigrawler_output} | anew -q ${s3_buckets}
+		echo -e "                [${green}+${reset}] s3: $(jq -r '.s3[]?' ${sigrawler_output} | sort -u | wc -l)"
+
 		jq -r '.urls[]?' ${sigrawler_output} | anew -q ${urls}
+		echo -e "                [${green}+${reset}] urls: $(jq -r '.urls[]?' ${sigrawler_output} | sort -u | wc -l)"
+		
 	}
 
 	# }}
+	# {{ CONTENT DISCOVERY: PROBE URLS
+
+	[ ${probe_urls} == True ] && [ -f ${urls} ] && {
+		echo -e "    [${blue}+${reset}] probe urls"
+
+		printf "        [${blue}+${reset}] categorize urls"
+		printf "\r"
+		sigurlx -iL ${urls} -c -oJ ${urls_categories} &> /dev/null
+		echo -e "        [${green}*${reset}] categorize urls"
+
+		printf "        [${blue}+${reset}] probe endpoints"
+		printf "\r"
+		jq -r '.[] | select(.category == "endpoint") | .url' ${urls_categories} | sigurlx -iL - -pV -pR -dX -r -oJ ${endpoints_probe} &> /dev/null
+		echo -e "        [${green}*${reset}] probe endpoints"
+	}
+	
+	# }}
+
+	[ ${keep} == False ] && rm ${content_discovery_output}/temp-*.*
 
 	# }}
 
@@ -322,11 +337,12 @@ domain=False
 
 resolve=False
 httprobe=False
-hostsprobe=False
+probe_hosts=False
 screenshot=False
 
 fingerprint=False
 crawl=False
+probe_urls=False
 
 keep=False
 notify=False
@@ -345,7 +361,7 @@ content_discovery_output="$(pwd)/content-discovery"
 
 while [[ "${#}" -gt 0 && ."${1}" == .-* ]]
 do
-	case "$(echo ${1} | tr '[:upper:]' '[:lower:]')" in
+	case ${1} in
 		# GENERAL OPTIONS
 		-d)
 			domain=${2}
@@ -362,14 +378,14 @@ do
 		-r)
 			resolve=True
 		;;
-		-hp)
+		-hP)
 			httprobe=True
-		;;
-		-ph)
-			hostsprobe=True
 		;;
 		-x)
 			screenshot=True
+		;;
+		-pH)
+			probe_hosts=True
 		;;
 		-use)
 			subs_sources_to_use=${2}
@@ -405,6 +421,9 @@ do
 		;;
 		-c)
 			crawl=True
+		;;
+		-pU)
+			probe_urls=True
 		;;
 		# OUTPUT OPTIONS
 		-o)

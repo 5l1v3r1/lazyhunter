@@ -36,15 +36,16 @@ GENERAL OPTIONS:
 
 ASSET DISCOVERY OPTIONS:
   -r 		 resolve
-  -hp 		 http(s) probe
-  -ph 		 ffuf http(s) hosts
-  -x 		 screenshot http(s) hosts
+  -hP 		 httprobe
+  -x 		 screenshot
+  -pH 		 probe hosts
   -use 		 comma(,) separated subs enum tools to use
   -exclude 	 comma(,) separated subs enum tools to exclude
 
 CONTENT DISCOVERY OPTIONS:
   -f 		 fingerprint hosts
   -c 		 crawl/spider the hosts
+  -pU 		 probe urls
 
 OUTPUT OPTIONS:
   -k 		 keep each tool's results
