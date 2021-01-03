@@ -1,16 +1,14 @@
 # Dr. Signed's Automatic Recon Script
 
-![made with bash](https://img.shields.io/badge/made%20with-Bash-0040ff.svg) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/autorecon/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
+[![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg)](https://github.com/drsigned/autorecon) [![open issues](https://img.shields.io/github/issues-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/autorecon/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
 
-A wrapper, bash script, around tools I use for assets discovery to automate my workflow.
+A web application reconnaissance automation script. It takes a target domain as an input and performs reconnaissance on it and gives out - Screenshots, javascripts from wayback machine, endpoints, subdomains, Valid paths, xss parameters, check for live ports , check for Subdomain takeover , etc..
 
-## Installation
+## Resources
 
-To get the script clone this repository:
-
-```bash
-$ git clone https://github.com/drsigned/autorecon.git
-```
+* [Usage](#usage)
+* [Installation](#installation)
+* [Contributuion](#contribution)
 
 ## Usage
 
@@ -32,30 +30,35 @@ USAGE:
   autorecon [OPTIONS]
 
 GENERAL OPTIONS:
-  -d 		 domain to AD on
-  -notify 	 send notifications
-  -h 		 display this message and exit
+  -d 		 domain to recon on
+  -notify 	 send notifications (via notifier)
+  -h 		 display this help message and exit
 
 ASSET DISCOVERY OPTIONS:
-  -use 		 tools to use
-  -exclude 	 tools to exclude
-  -r 		 resolve subdomains
-  -rh 		 resolve subdomains & httprobe
-  -rhp 		 resolve subdomains, httprobe & probe hosts
-  -rhpx 	 resolve subdomains, httprobe, probe hosts & screenshot
+  -r 		 resolve
+  -hp 		 http(s) probe
+  -ph 		 ffuf http(s) hosts
+  -x 		 screenshot http(s) hosts
+  -use 		 comma(,) separated subs enum tools to use
+  -exclude 	 comma(,) separated subs enum tools to exclude
 
 CONTENT DISCOVERY OPTIONS:
-  -cd 		 do content discovery
-  -tech-detect 	 detect web technology used
-
-VULNERABILITY DISCOVERY OPTIONS:
-  -vulns 	 do content discovery
+  -f 		 fingerprint hosts
+  -c 		 crawl/spider the hosts
 
 OUTPUT OPTIONS:
-  -o 		 output directory path
   -k 		 keep each tool's results
+  -o 		 output directory path
 
 HAPPY HACKING ! :)
+```
+
+## Installation
+
+To get the script clone this repository:
+
+```bash
+$ git clone https://github.com/drsigned/autorecon.git
 ```
 
 ## Contibution

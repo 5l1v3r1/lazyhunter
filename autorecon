@@ -39,23 +39,20 @@ display_usage() {
 	\r  -h \t\t display this help message and exit
 
 	\rASSET DISCOVERY OPTIONS:
-	\r  -use \t\t tools to use
-	\r  -exclude \t tools to exclude
-	\r  -r \t\t resolve subdomains
-	\r  -rh \t\t resolve subdomains & httprobe
-	\r  -rhp \t\t resolve subdomains, httprobe & probe hosts
-	\r  -rhpx \t resolve subdomains, httprobe, probe hosts & screenshot
+	\r  -r \t\t resolve
+	\r  -hp \t\t http(s) probe
+	\r  -ph \t\t ffuf http(s) hosts
+	\r  -x \t\t screenshot http(s) hosts
+	\r  -use \t\t comma(,) separated subs enum tools to use
+	\r  -exclude \t comma(,) separated subs enum tools to exclude
 
 	\rCONTENT DISCOVERY OPTIONS:
-	\r  -cd \t\t do content discovery
-	\r  -tech-detect \t detect web technology used
-
-	\rVULNERABILITY DISCOVERY OPTIONS:
-	\r  -vulns \t do content discovery
+	\r  -f \t\t fingerprint hosts
+	\r  -c \t\t crawl/spider the hosts
 
 	\rOUTPUT OPTIONS:
-	\r  -o \t\t output directory path
 	\r  -k \t\t keep each tool's results
+	\r  -o \t\t output directory path
 	
 	\rHAPPY HACKING ! :)
 
@@ -73,16 +70,20 @@ check_tools() {
 		massdns
 		# http(s) probing
 		httpx
+		# probe hosts
+		ffuf
 		# screenshot
 		aquatone
-		
-		# substko
-		nuclei
 		# fingerprint
 		wappalyzer
 		wafw00f
-
+		# crawl
 		sigurls
+		sigrawler
+		
+		# substko
+		nuclei
+
 		# sigurlx
 		# notification
 		notifier
@@ -112,7 +113,7 @@ _amass() {
 	printf "        [${blue}+${reset}] amass"
 	printf "\r"
 	amass enum -passive -d ${domain} -o ${amass_output} &> /dev/null
-	echo -e "        [${blue}+${reset}] amass: $(wc -l < ${amass_output})"
+	echo -e "        [${green}*${reset}] amass: $(wc -l < ${amass_output})"
 }
 
 _sigsubs() {
@@ -121,7 +122,7 @@ _sigsubs() {
 	printf "        [${blue}+${reset}] sigsubs"
 	printf "\r"
 	sigsubs -d ${domain} -silent 1> ${sigsubs_output} 2> /dev/null
-	echo -e "        [${blue}+${reset}] sigsubs: $(wc -l < ${sigsubs_output})"
+	echo -e "        [${green}*${reset}] sigsubs: $(wc -l < ${sigsubs_output})"
 }
 
 _findomain() {
@@ -130,7 +131,7 @@ _findomain() {
 	printf "        [${blue}+${reset}] findomain"
 	printf "\r"
 	findomain -t ${domain} -q 1> ${findomain_output} 2> /dev/null
-	echo -e "        [${blue}+${reset}] findomain: $(wc -l ${findomain_output} | awk '{print $1}' 2> /dev/null)"
+	echo -e "        [${green}*${reset}] findomain: $(wc -l ${findomain_output} | awk '{print $1}' 2> /dev/null)"
 }
 
 _subfinder() {
@@ -139,7 +140,7 @@ _subfinder() {
 	printf "        [${blue}+${reset}] subfinder"
 	printf "\r"
 	subfinder -d ${domain} -silent 1> ${subfinder_output} 2> /dev/null
-	echo -e "        [${blue}+${reset}] subfinder: $(wc -l < ${subfinder_output})"
+	echo -e "        [${green}*${reset}] subfinder: $(wc -l < ${subfinder_output})"
 }
 
 main() {
@@ -149,12 +150,20 @@ main() {
 	# {{ ASSET DISCOVERY
 
 	echo -e "[${blue}+${reset}] asset discovery"
+
 	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
+
+	ips="${asset_discovery_output}/ips.txt"
+	hosts="${asset_discovery_output}/hosts.txt"
+	s3_buckets="${asset_discovery_output}/s3.txt"
+	subdomains="${asset_discovery_output}/subdomains.txt"
+	resolved_subdomains="${asset_discovery_output}/resolved-subdomains.txt"
+	hosts_ffuf_output="${asset_discovery_output}/hosts-probe.json"
+	visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
 
 	# {{ ASSET DISCOVERY: SUNDOMAIN ENUMERATION
 
 	echo -e "    [${blue}+${reset}] subdomains enumeration"
-	subdomains="${asset_discovery_output}/subdomains.txt"
 
 	[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
 		for source in "${subs_sources[@]}"
@@ -185,26 +194,10 @@ main() {
 	echo -e "        [=] unique subdomains: $(wc -l < ${subdomains})"
 
 	# }}
-	# {{ VULNERABILITY: SUBDOMAIN TAKEOVER
-
-	# [ ${vuln_scan} == True ] && {
-	# 	echo -e "    [${blue}+${reset}] subdomain takeover"
-	# 	substko_output="${asset_discovery_output}/substko-output.txt"
-
-	# 	substko -l ${subdomains} -silent > ${substko_output} 
-
-	# 	[ ${notify} == True ] && {
-	# 		substko -l ${subdomains} -silent | tee ${substko_output} | notifier
-	# 	}
-	# }
-	
-	# }}
 	# {{ ASSET DISCOVERY: SUBDOMAINS RESOLUTION
 
-	[ ${resolve} == True ] && {
+	[ ${resolve} == True ] && [ -f ${subdomains} ] && {
 		echo -e "    [${blue}+${reset}] subdomains resolution"
-		ips="${asset_discovery_output}/ips.txt"
-		resolved_subdomains="${asset_discovery_output}/resolved-subdomains.txt"
 
 		local massdns_output="${asset_discovery_output}/temp-massdns-resolve.txt"
 
@@ -213,87 +206,51 @@ main() {
 		massdns -r ${HOME}/tools/web/recon/dns-resolution/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
 		echo -e "        [${blue}+${reset}] resolved!"
 
-		printf "        [${blue}+${reset}] resolved IPs"
+		printf "        [${blue}+${reset}] IPs"
 		printf "\r"
-		egrep -o -h "[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}" ${massdns_output} | sort -u | anew -q ${ips}
-		echo -e "        [${blue}+${reset}] resolved IPs: $(wc -l < ${ips})"
+		cat ${massdns_output} | grep -o -h "[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}" | sort -u | anew -q ${ips}
+		echo -e "        [${blue}+${reset}] IPs: $(wc -l < ${ips})"
 
-		printf "        [${blue}+${reset}] resolved subdomains"
+		printf "        [${blue}+${reset}] s3 buckets"
+		printf "\r"
+		cat ${massdns_output} | grep -Po "([a-z0-9.-]+\\.s3\\.amazonaws\\.com|[a-z0-9.-]+\\.s3-[a-z0-9-]\\.amazonaws\\.com|[a-z0-9.-]+\\.s3-website[.-](eu|ap|us|ca|sa|cn)|//s3\\.amazonaws\\.com/[a-z0-9._-]+|//s3-[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._-]+)" | sort -u | anew -q ${s3_buckets}
+		echo -e "        [${blue}+${reset}] s3 buckets: $(wc -l < ${s3_buckets})"
+
+		printf "        [${blue}+${reset}] subdomains"
 		printf "\r"
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
-		echo -e "        [${blue}+${reset}] resolved subdomains: $(wc -l < ${resolved_subdomains})"
+		echo -e "        [${blue}+${reset}] subdomains: $(wc -l < ${resolved_subdomains})"
 	}
 
 	# }}
 	# {{ ASSET DISCOVERY: HTTP(S) PROBING
 
-	[ ${resolve} == True ] \
-	&& [ ${httprobe} == True ] && {
+	[ ${httprobe} == True ] && [ -f ${resolved_subdomains} ] && {
 		echo -e "    [${blue}+${reset}] http(s) probing"
-		hosts="${asset_discovery_output}/hosts.txt"
+
 		httpx -l ${resolved_subdomains} -silent | anew -q ${hosts}
-	}
-
-	# }}
-	# {{ ASSET DISCOVERY: VISUAL RECONNAISSANCE
-
-	[ ${resolve} == True ] \
-	&& [ ${httprobe} == True ] \
-	&& [ ${screenshot} == True ] && {
-		echo -e "    [${blue}+${reset}] visual reconnaissance"
-		visual_reconnaissance="${asset_discovery_output}/visual-reconnaissance"
-		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
-		cat ${hosts} | aquatone --ports xlarge -out ${visual_reconnaissance} -scan-timeout 500 -screenshot-timeout 50000 -http-timeout 6000 -silent &> /dev/null
 	}
 
 	# }}
 	# {{ ASSET DISCOVERY: HOSTS PROBING
 
-	# [ ${resolve} == True ] \
-	# && [ ${httprobe} == True ] \
-	# && [ ${hostsprobe} == True ] && {
-	# 	echo -e "    [${blue}+${reset}] hosts probing"
-	# 	hosts_probe="${asset_discovery_output}/hosts-probe.json"
-	# 	cat ${hosts} | sigurlx -request -oJ ${hosts_probe} -s &> /dev/null
-	# }
+	[ ${hostsprobe} == True ] && [ -f ${hosts} ] && {
+		echo -e "    [${blue}+${reset}] ffuf http(s) hosts"
+
+		ffuf -w ${hosts} -u FUZZ -mc all -o ${hosts_ffuf_output} -of json &> /dev/null
+	}
 
 	# }}
-	# {{ VULNERABILITY: DETCETING KNOWN VULNERABILITIES
+	# {{ ASSET DISCOVERY: VISUAL RECONNAISSANCE
 
-	# [ ${resolve} == True ] \
-	# && [ ${httprobe} == True ] \
-	# && [ ${hostsprobe} == True ] \
-	# && [ ${vuln_scan} == True ] && {
-	# 	echo -e "    [${blue}+${reset}] check known vulns"
-	# 	nuclei_output="${asset_discovery_output}/nuclei-output.txt"
+	[ ${screenshot} == True ] && [ -f ${hosts} ] && {
+		echo -e "    [${blue}+${reset}] visual reconnaissance"
 
-	# 	[ ${notify} == True ] && {
-	# 		jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} \
-	# 		| nuclei \
-	# 			-t ~/nuclei-templates/dns \
-	# 			-t ~/nuclei-templates/misc \
-	# 			-t ~/nuclei-templates/cves \
-	# 			-t ~/nuclei-templates/files \
-	# 			-t ~/nuclei-templates/vulnerabilities \
-	# 			-t ~/nuclei-templates/security-misconfiguration \
-	# 			-severity low,medium,high,critical -silent | tee ${nuclei_output} | notifier
-	# 	}
-	# }
+		[ ! -d ${visual_reconnaissance} ] && mkdir -p ${visual_reconnaissance}
 
-	# }}
-	# {{ VULNERABILITY: CORS MISCONFIGURATION
+		cat ${hosts} | aquatone --ports xlarge -out ${visual_reconnaissance} -scan-timeout 500 -screenshot-timeout 50000 -http-timeout 6000 -silent &> /dev/null
+	}
 
-	# [ ${resolve} == True ] \
-	# && [ ${httprobe} == True ] \
-	# && [ ${hostsprobe} == True ] \
-	# && [ ${vuln_scan} == True ] && {
-	# 	echo -e "    [${blue}+${reset}] cors misconfiguration"
-	# 	corsmisc_output="${asset_discovery_output}/corsmisc.json"
-	# 	[ ${notify} == True ] && {
-	# 		jq -r '.[] | select(.status_code == 200) | .url' ${hosts_probe} | corsmisc -urls - -o ${corsmisc_output} -s | notifier
-	# 	}
-	# }
-	
 	# }}
 	
 	[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-*.txt
@@ -301,64 +258,58 @@ main() {
 	# }}
 	# {{ CONTENT DISCOVERY
 
-	[ ${content_discovery} == True ] && {
+	echo -e "[${blue}+${reset}] content discovery"
 
-		echo -e "[${blue}+${reset}] content discovery"
-		[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
+	[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
 
-		# {{ CONTENT DISCOVERY: TECHNOLOGY DETECTION
+	urls="${content_discovery_output}/urls.txt"
+	sigrawler_output="${content_discovery_output}/sigrawler.json"
 
-		[ ${resolve} == True ] \
-		&& [ ${httprobe} == True ] \
-		&& [ ${fingerprint} == True ] && {
-			echo -e "    [${blue}+${reset}] technology detection"
-			technology_output="${content_discovery_output}/technology"
-			[ ! -d ${technology_output} ] && mkdir -p ${technology_output}
+	# {{ CONTENT DISCOVERY: FINGERPRINT
 
-			echo -e "        [${blue}+${reset}] waf technology"
-			waf_technology_output="${technology_output}/waf.json"
-			wafw00f -i ${hosts} -o ${waf_technology_output} &> /dev/null
+	[ ${fingerprint} == True ] && [ -f ${hosts} ] && {
+		echo -e "    [${blue}+${reset}] fingerprint"
+		fingerprinting_output="${content_discovery_output}/technology"
 
-			echo -e "        [${blue}+${reset}] web application technology"
-			web_technology_output="${technology_output}/web-application"
-			[ ! -d ${web_technology_output} ] && mkdir -p ${web_technology_output}
-			cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_technology_output}
-		}
-		
-		# }}
-		# {{ CONTENT DISCOVERY: FETCH KNOWN URLS
+		[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
 
-		echo -e "    [${blue}+${reset}] urls fetching (sigurls)"
-		known_urls="${content_discovery_output}/known-urls.txt"
-		sigurls -d ${domain} -iS -silent 1> ${known_urls} 2> /dev/null
+		printf "        [${blue}+${reset}] wafw00f"
+		printf "\r"
+		waf_fingerprinting_output="${fingerprinting_output}/waf.json"
+		wafw00f -i ${hosts} -o ${waf_fingerprinting_output} &> /dev/null
+		echo -e "        [${green}*${reset}] wafw00f"
 
-		# }}
-		# {{ CONTENT DISCOVERY: WEB CRAWLING
-
-		echo -e "    [${blue}+${reset}] web crawling (sigrawler)"
-		sigrawler_output="${content_discovery_output}/sigrawler.json"
-		cat ${hosts} ${known_urls} | sigrawler -subs -depth 3 -o ${sigrawler_output} &> /dev/null
-
-		# }}
-
-		jq -r '.urls[]' ${sigrawler_output} | anew -q ${known_urls}
-
-		# {{ CONTENT DISCOVERY: URLS CATEGORIZING
-
-		echo -e "    [${blue}+${reset}] urls categorizing"
-		url_categories="${content_discovery_output}/url-categories.json"
-		sigurlx -iL ${known_urls} -c -oJ ${url_categories} -s &> /dev/null
-
-		# }}
-		# {{ CONTENT DISCOVERY: ENDPOINTS PROBING
-
-		echo -e "    [${blue}+${reset}] endpoints probing"
-		endpoint_probes="${content_discovery_output}/endpoints-probe.json"
-		jq -r '.[] | select(.category == "endpoint") | .url' ${url_categories} | sigurlx -iL - -c -p -oJ ${endpoint_probes} -s &> /dev/null
-
-		# }}
-
+		# echo -e "        [${blue}+${reset}] web application technology"
+		# web_fingerprinting_output="${fingerprinting_output}/web-technology"
+		# [ ! -d ${web_fingerprinting_output} ] && mkdir -p ${web_fingerprinting_output}
+		# cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_fingerprinting_output}
 	}
+	
+	# }}
+	# {{ CONTENT DISCOVERY: CRAWL
+	
+	[ ${crawl} == True ] && [ -f ${hosts} ] && {
+		echo -e "    [${blue}+${reset}] crawl"
+
+		printf "        [${blue}+${reset}] sigurls"
+		printf "\r"
+		sigurls -d ${domain} -iS -silent 1> ${urls} 2> /dev/null
+		echo -e "        [${green}*${reset}] sigurls"
+
+		printf "        [${blue}+${reset}] sigrawler"
+		printf "\r"
+		[ -f ${hosts} ] && {
+			cat ${hosts} ${urls} | sigrawler -iL - -iS -depth 3 -oJ ${sigrawler_output} &> /dev/null
+		} || {
+			cat ${urls} | sigrawler -iL - -iS -depth 3 -oJ ${sigrawler_output} &> /dev/null
+		}
+		echo -e "        [${green}*${reset}] sigrawler"
+
+		jq -r '.s3[]?' ${sigrawler_output} | anew -q ${s3_buckets}
+		jq -r '.urls[]?' ${sigrawler_output} | anew -q ${urls}
+	}
+
+	# }}
 
 	# }}
 
@@ -367,16 +318,18 @@ main() {
 
 # START RUNNING SCRIPT
 
-keep=False
-notify=False
 domain=False
+
 resolve=False
 httprobe=False
-vuln_scan=False
 hostsprobe=False
 screenshot=False
+
 fingerprint=False
-content_discovery=False
+crawl=False
+
+keep=False
+notify=False
 
 subs_sources=(
 	amass
@@ -406,6 +359,18 @@ do
 			exit 0
 		;;
 		# ASSET DISCOVERY OPTIONS
+		-r)
+			resolve=True
+		;;
+		-hp)
+			httprobe=True
+		;;
+		-ph)
+			hostsprobe=True
+		;;
+		-x)
+			screenshot=True
+		;;
 		-use)
 			subs_sources_to_use=${2}
 			subs_sources_to_use_dictionary=${subs_sources_to_use//,/ }
@@ -434,39 +399,12 @@ do
 			done
 			shift
 		;;
-		-r) 
-			resolve=True
-		;;
-		-rh)
-			resolve=True
-			httprobe=True
-		;;
-		-rhx)
-			resolve=True
-			httprobe=True
-			screenshot=True
-		;;
-		-rhp)
-			resolve=True
-			httprobe=True
-			hostsprobe=True
-		;;
-		-rhpx)
-			resolve=True
-			httprobe=True
-			hostsprobe=True
-			screenshot=True
-		;;
 		# CONTENT DISCOVERY OPTIONS
-		-cd)
-			content_discovery=True
-		;;
-		-tech-detect)
+		-f)
 			fingerprint=True
 		;;
-		# VULNERABILITY DISCOVERY OPTIONS
-		-vulns) 
-			vuln_scan=True
+		-c)
+			crawl=True
 		;;
 		# OUTPUT OPTIONS
 		-o)
