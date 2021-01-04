@@ -39,8 +39,9 @@ display_usage() {
 	\r  -h \t\t display this help message and exit
 
 	\rASSET DISCOVERY OPTIONS:
-	\r  -r \t\t resolve
-	\r  -hP \t\t httprobe
+	\r  -sE \t\t enumerate subdomains
+	\r  -sR \t\t resolve subdomain
+	\r  -hP \t\t http(s) probe
 	\r  -x \t\t screenshot
 	\r  -pH \t\t probe hosts
 	\r  -use \t\t comma(,) separated subs enum tools to use
@@ -50,6 +51,9 @@ display_usage() {
 	\r  -f \t\t fingerprint hosts
 	\r  -c \t\t crawl/spider the hosts
 	\r  -pU \t\t probe urls
+
+	\rVULNERABILITY SCAN OPTIONS:
+	\r  -vS \t\t run vuln scanning
 
 	\rOUTPUT OPTIONS:
 	\r  -k \t\t keep each tool's results
@@ -84,6 +88,12 @@ ensure_tools_are_setup() {
 		# crawl
 		sigurls
 		sigrawler
+		# subdomain takeover
+		substko
+		# known vulnerabilities
+		nuclei
+		# bypass 403
+		bypass403
 	)
 	missing_tools=()
 
@@ -158,43 +168,58 @@ main() {
 
 	# {{ ASSET DISCOVERY: SUNDOMAIN ENUMERATION
 
-	echo -e "    [${blue}+${reset}] gather subs"
+	[ ${subdomain_enumeration} == True ] && {
+		echo -e "    [${blue}+${reset}] subdomain enumeration"
 
-	[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
-		for source in "${subs_sources[@]}"
-		do 
-			_${source}
-		done
-	} || {
-		[ ${subs_sources_to_use} != False ] && {
-			for source in "${subs_sources_to_use_dictionary[@]}"
+		[ ${subs_sources_to_use} == False ] && [ ${subs_sources_to_exclude} == False ] && {
+			for source in "${subs_sources[@]}"
 			do 
 				_${source}
 			done
-		} 
-		[ ${subs_sources_to_exclude} != False ] && {
-			for source in ${subs_sources[@]}
-			do
-				if [[ " ${subs_sources_to_exclude_dictionary[@]} " =~ " ${source} " ]]
-				then
-					continue
-				else
+		} || {
+			[ ${subs_sources_to_use} != False ] && {
+				for source in "${subs_sources_to_use_dictionary[@]}"
+				do 
 					_${source}
-				fi
-			done
+				done
+			} 
+			[ ${subs_sources_to_exclude} != False ] && {
+				for source in ${subs_sources[@]}
+				do
+					if [[ " ${subs_sources_to_exclude_dictionary[@]} " =~ " ${source} " ]]
+					then
+						continue
+					else
+						_${source}
+					fi
+				done
+			}
 		}
+
+		cat ${asset_discovery_output}/temp-*-subdomains.txt | sed 's#*.# #g' | anew -q ${subdomains}
+		echo -e "        [=] unique subdomains: $(wc -l < ${subdomains})"
+
+		[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-subdomains.txt
 	}
 
-	cat ${asset_discovery_output}/temp-*-subdomains.txt | sed 's#*.# #g' | anew -q ${subdomains}
-	echo -e "        [=] unique subdomains: $(wc -l < ${subdomains})"
+	# }}
+	# {{ TESTING: SUBDOMAIN TAKEOVER
 
+	[ ${vuln_scan} == True ] && [ -f ${subdomains} ] && {
+		echo -e "    [${blue}+${reset}] subdomain takeover"
+		local substko_output="${testing_output}/subdomain-takeover.txt"
+
+		substko -l ${subdomains} -silent > ${substko_output} 
+	}
+	
 	# }}
 	# {{ ASSET DISCOVERY: SUBDOMAINS RESOLUTION
 
-	[ ${resolve} == True ] && [ -f ${subdomains} ] && {
-		echo -e "    [${blue}+${reset}] resolve subs"
+	[ ${subdomain_resolution} == True ] && [ -f ${subdomains} ] && {
+		echo -e "    [${blue}+${reset}] subdomain resolution"
 
 		local massdns_output="${asset_discovery_output}/temp-massdns-resolve.txt"
+
 		massdns -r ${HOME}/tools/web/recon/dns-resolution/massdns/lists/resolvers.txt -q -t A -o S -w ${massdns_output} ${subdomains}
 
 		echo -e "        [${blue}+${reset}] extact:"
@@ -207,26 +232,57 @@ main() {
 
 		cat ${massdns_output} | grep -Po "^[^-*\"]*?\K[[:alnum:]-]+\.${domain}" | sort -u | anew -q ${resolved_subdomains}
 		echo -e "            [${blue}+${reset}] subdomains: $(wc -l < ${resolved_subdomains})"
+
+		[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-resolve.txt
 	}
 
 	# }}
-	# {{ ASSET DISCOVERY: HTTP PROBE
+	# {{ ASSET DISCOVERY: HTTP(S) PROBING
 
-	[ ${httprobe} == True ] && [ -f ${resolved_subdomains} ] && {
-		echo -e "    [${blue}+${reset}] http probe"
+	[ ${http_s_probing} == True ] && [ -f ${resolved_subdomains} ] && {
+		echo -e "    [${blue}+${reset}] http(s) probing"
 
 		httpx -l ${resolved_subdomains} -silent | anew -q ${hosts}
 	}
 
 	# }}
+	# {{ TESTING: KNOWN VULNERABILITIES
+
+	[ ${vuln_scan} == True ] && [ -f ${hosts} ] && {
+		echo -e "    [${blue}+${reset}] known vulns (nuclei)"
+		local nuclei_output="${testing_output}/nuclei-output.txt"
+
+		nuclei -l ${hosts}\
+			-t ~/nuclei-templates/dns \
+			-t ~/nuclei-templates/misc \
+			-t ~/nuclei-templates/cves \
+			-t ~/nuclei-templates/files \
+			-t ~/nuclei-templates/vulnerabilities \
+			-t ~/nuclei-templates/security-misconfiguration \
+			-severity low,medium,high,critical -silent | tee ${nuclei_output} &> /dev/null
+		
+	}
+
+	# }}
 	# {{ ASSET DISCOVERY: HOSTS PROBE
 
-	[ ${probe_hosts} == True ] && [ -f ${hosts} ] && {
+	[ ${hosts_probing} == True ] && [ -f ${hosts} ] && {
 		echo -e "    [${blue}+${reset}] probe hosts"
 
 		sigurlx -iL ${hosts} -r -oJ ${hosts_probe} &> /dev/null
 	}
 
+	# }}
+	# {{ TESTING: 403 BYPASS
+
+	[ ${vuln_scan} == True ] && [ -f ${hosts_probe} ] && [ $(jq -r '.[] | select(.status_code == 403) | .url' ${hosts_probe} | wc -l) > 0 ] && {
+		
+		echo -e "    [${blue}+${reset}] 403 bypassing"
+		local bypass403_output="${testing_output}/403-bypass.txt"
+
+		jq -r '.[] | select(.status_code == 403) | .url' ${hosts_probe} | bypass403 -iL - > ${bypass403_output}
+	}
+	
 	# }}
 	# {{ ASSET DISCOVERY: SCREENSHOT
 
@@ -239,8 +295,6 @@ main() {
 	}
 
 	# }}
-	
-	[ ${keep} == False ] && rm ${asset_discovery_output}/temp-*-*.txt
 
 	# }}
 	# {{ CONTENT DISCOVERY
@@ -256,7 +310,7 @@ main() {
 	# {{ CONTENT DISCOVERY: FINGERPRINT
 
 	[ ${fingerprint} == True ] && [ -f ${hosts} ] && {
-		echo -e "    [${blue}+${reset}] tech detect"
+		echo -e "    [${blue}+${reset}] fingerprinting"
 		fingerprinting_output="${content_discovery_output}/technology"
 
 		[ ! -d ${fingerprinting_output} ] && mkdir -p ${fingerprinting_output}
@@ -284,7 +338,7 @@ main() {
 		sigurls -d ${domain} -iS -silent 1> ${urls} 2> /dev/null
 		echo -e "        [${green}*${reset}] sigurls"
 
-		local sigrawler_output="${content_discovery_output}/temp-sigrawler.json"
+		local sigrawler_output="${content_discovery_output}/temp-sigrawler-crawl.json"
 
 		echo -e "        [${blue}+${reset}] sigrawler"
 		[ -f ${hosts} ] && {
@@ -300,13 +354,14 @@ main() {
 
 		jq -r '.urls[]?' ${sigrawler_output} | anew -q ${urls}
 		echo -e "                [${green}+${reset}] urls: $(jq -r '.urls[]?' ${sigrawler_output} | sort -u | wc -l)"
-		
+
+		[ ${keep} == False ] && rm ${content_discovery_output}/temp-*-crawl.json
 	}
 
 	# }}
 	# {{ CONTENT DISCOVERY: PROBE URLS
 
-	[ ${probe_urls} == True ] && [ -f ${urls} ] && {
+	[ ${urls_probing} == True ] && [ -f ${urls} ] && {
 		echo -e "    [${blue}+${reset}] probe urls"
 
 		printf "        [${blue}+${reset}] categorize urls"
@@ -322,8 +377,6 @@ main() {
 	
 	# }}
 
-	[ ${keep} == False ] && rm ${content_discovery_output}/temp-*.*
-
 	# }}
 
 	echo -e ${bold}${blue}"\n- DONE! ----------------------------------------------"${reset}
@@ -331,16 +384,19 @@ main() {
 
 # START RUNNING SCRIPT
 
-domain=False
-
-resolve=False
-httprobe=False
-probe_hosts=False
+subdomain_enumeration=False
+subdomain_resolution=False
+http_s_probing=False
+hosts_probing=False
 screenshot=False
+
+domain=False
 
 fingerprint=False
 crawl=False
-probe_urls=False
+urls_probing=False
+
+vuln_scan=False
 
 keep=False
 notify=False
@@ -356,6 +412,7 @@ subs_sources_to_exclude=False
 
 asset_discovery_output="$(pwd)/asset-discovery"
 content_discovery_output="$(pwd)/content-discovery"
+testing_output="$(pwd)/testing"
 
 while [[ "${#}" -gt 0 && ."${1}" == .-* ]]
 do
@@ -373,17 +430,20 @@ do
 			exit 0
 		;;
 		# ASSET DISCOVERY OPTIONS
-		-r)
-			resolve=True
+		-sE)
+			subdomain_enumeration=True
+		;;
+		-sR)
+			subdomain_resolution=True
 		;;
 		-hP)
-			httprobe=True
+			http_s_probing=True
 		;;
 		-x)
 			screenshot=True
 		;;
 		-pH)
-			probe_hosts=True
+			hosts_probing=True
 		;;
 		-use)
 			subs_sources_to_use=${2}
@@ -421,12 +481,17 @@ do
 			crawl=True
 		;;
 		-pU)
-			probe_urls=True
+			urls_probing=True
+		;;
+		# VULNERABILITY SCAN OPTIONS
+		-vS)
+			vuln_scan=True
 		;;
 		# OUTPUT OPTIONS
 		-o)
 			asset_discovery_output="${2}/asset-discovery"
 			content_discovery_output="${2}/content-discovery"
+			testing_output="${2}/testing"
 			shift
 		;;
 		-k)
