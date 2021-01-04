@@ -74,8 +74,8 @@ ensure_tools_are_setup() {
 		massdns
 		# http(s) probing
 		httpx
-		# probe hosts
-		ffuf
+		# probe hosts & urls
+		sigurlx
 		# screenshot
 		aquatone
 		# fingerprint
@@ -84,8 +84,6 @@ ensure_tools_are_setup() {
 		# crawl
 		sigurls
 		sigrawler
-		# probe urls
-		sigurlx
 	)
 	missing_tools=()
 
@@ -226,7 +224,7 @@ main() {
 	[ ${probe_hosts} == True ] && [ -f ${hosts} ] && {
 		echo -e "    [${blue}+${reset}] probe hosts"
 
-		ffuf -w ${hosts} -u FUZZ -mc all -o ${hosts_probe} -of json &> /dev/null
+		sigurlx -iL ${hosts} -r -oJ ${hosts_probe} &> /dev/null
 	}
 
 	# }}
