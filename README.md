@@ -1,6 +1,6 @@
-# Dr. Signed's Automatic Recon Script
+# Dr. Signed's Lazy Hunter Script
 
-[![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg)](https://github.com/drsigned/autorecon) [![open issues](https://img.shields.io/github/issues-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/autorecon.svg?style=flat&color=0040ff)](https://github.com/drsigned/autorecon/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/autorecon/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
+[![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg)](https://github.com/drsigned/lazyhunter) [![open issues](https://img.shields.io/github/issues-raw/drsigned/lazyhunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/lazyhunter/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/lazyhunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/lazyhunter/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/lazyhunter/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
 
 A web application reconnaissance automation script. It takes a target domain as an input and performs reconnaissance on it and gives out - Screenshots, javascripts from wayback machine, endpoints, subdomains, Valid paths, xss parameters, check for live ports , check for Subdomain takeover , etc..
 
@@ -15,7 +15,7 @@ A web application reconnaissance automation script. It takes a target domain as 
 To display this script's help message, use the `-h` flag:
 
 ```
-$ ./autorecon -h
+$ ./lazyhunter -h
 
  ____         ____  _                      _ _     
 |  _ \ _ __  / ___|(_) __ _ _ __   ___  __| ( )___ 
@@ -27,7 +27,7 @@ $ ./autorecon -h
 ------------------------------------------------------
 
 USAGE:
-  autorecon [OPTIONS]
+  lazyhunter [OPTIONS]
 
 GENERAL OPTIONS:
   -d 		 domain to recon on
@@ -35,8 +35,9 @@ GENERAL OPTIONS:
   -h 		 display this help message and exit
 
 ASSET DISCOVERY OPTIONS:
-  -r 		 resolve
-  -hP 		 httprobe
+  -sE 		 enumerate subdomains
+  -sR 		 resolve subdomain
+  -hP 		 http(s) probe
   -x 		 screenshot
   -pH 		 probe hosts
   -use 		 comma(,) separated subs enum tools to use
@@ -46,6 +47,9 @@ CONTENT DISCOVERY OPTIONS:
   -f 		 fingerprint hosts
   -c 		 crawl/spider the hosts
   -pU 		 probe urls
+
+VULNERABILITY SCAN OPTIONS:
+  -vS 		 run vuln scanning
 
 OUTPUT OPTIONS:
   -k 		 keep each tool's results
@@ -59,9 +63,9 @@ HAPPY HACKING ! :)
 To get the script clone this repository:
 
 ```bash
-$ git clone https://github.com/drsigned/autorecon.git
+$ git clone https://github.com/drsigned/lazyhunter.git
 ```
 
 ## Contibution
 
-[Issues](https://github.com/drsigned/autorecon/issues) and [Pull Requests](https://github.com/drsigned/autorecon/pulls) are welcome!
+[Issues](https://github.com/drsigned/lazyhunter/issues) and [Pull Requests](https://github.com/drsigned/lazyhunter/pulls) are welcome!
