@@ -2,7 +2,7 @@
 
 [![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg)](https://github.com/drsigned/lazyhunter) [![open issues](https://img.shields.io/github/issues-raw/drsigned/lazyhunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/lazyhunter/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/drsigned/lazyhunter.svg?style=flat&color=0040ff)](https://github.com/drsigned/lazyhunter/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/drsigned/lazyhunter/blob/master/LICENSE) [![author](https://img.shields.io/badge/twitter-@drsigned-0040ff.svg)](https://twitter.com/drsigned)
 
-A web application reconnaissance automation script. It takes a target domain as an input and performs reconnaissance on it and gives out - Screenshots, javascripts from wayback machine, endpoints, subdomains, Valid paths, xss parameters, check for live ports , check for Subdomain takeover , etc..
+The lazy hunter script is web application reconnaissance and a bit of testing automation script.
 
 ## Resources
 
