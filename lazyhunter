@@ -264,11 +264,11 @@ ensure_tools_are_setup
 }
 
 [ ${fingerprint} == True ] || [ ${crawl} == True ] || [ ${urls_probing} == True ] && {
-	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
+	[ ! -d ${content_discovery_output} ] && mkdir -p ${content_discovery_output}
 }
 
 [ ${vuln_scan} == True ]  && {
-	[ ! -d ${asset_discovery_output} ] && mkdir -p ${asset_discovery_output}
+	[ ! -d ${testing_output} ] && mkdir -p ${testing_output}
 }
 
 urls="${content_discovery_output}/urls.txt"
@@ -371,8 +371,7 @@ echo -e "[${blue}+${reset}] asset discovery"
 
 [ ${vuln_scan} == True ] && [ -f ${subdomains} ] && {
     echo -e "    [${blue}+${reset}] subdomain takeover"
-    local substko_output="${testing_output}/subdomain-takeover.txt"
-
+    substko_output="${testing_output}/subdomain-takeover.txt"
     substko -l ${subdomains} -silent > ${substko_output} 
 }
 
@@ -406,7 +405,7 @@ echo -e "[${blue}+${reset}] asset discovery"
 [ ${http_s_probing} == True ] && [ -f ${resolved_subdomains} ] && {
     echo -e "    [${blue}+${reset}] http(s) probing"
 
-    cat ${resolved_subdomains} | httprobe -c 50 | anew -q ${hosts}
+    cat ${resolved_subdomains} | httprobe -c 50 -prefer-https | anew -q ${hosts}
 }
 
 # }}
@@ -414,8 +413,7 @@ echo -e "[${blue}+${reset}] asset discovery"
 
 [ ${vuln_scan} == True ] && [ -f ${hosts} ] && {
     echo -e "    [${blue}+${reset}] known vulns (nuclei)"
-    local nuclei_output="${testing_output}/nuclei-output.txt"
-
+    nuclei_output="${testing_output}/nuclei-output.txt"
     nuclei -l ${hosts}\
         -t ~/nuclei-templates/dns \
         -t ~/nuclei-templates/misc \
@@ -503,8 +501,7 @@ echo -e "[${blue}+${reset}] content discovery"
     }
 
     echo -e "        [${blue}+${reset}] sigrawler"
-    local sigrawler_output="${content_discovery_output}/temp-sigrawler-crawl.json"
-
+    sigrawler_output="${content_discovery_output}/temp-sigrawler-crawl.json"
     [ -f ${hosts} ] && {
         [ ${include_subdomains} == True ] && {
              cat ${hosts} ${urls} | sigrawler -iL - -depth 3 -iS -oJ ${sigrawler_output} &> /dev/null
