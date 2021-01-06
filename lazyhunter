@@ -111,6 +111,7 @@ ensure_tools_are_setup() {
 	tools=(
 		jq
 		anew
+		rush
 		notifier
 		# subs enumeration
 		amass
@@ -477,10 +478,10 @@ echo -e "[${blue}+${reset}] content discovery"
     wafw00f -i ${hosts} -o ${waf_fingerprinting_output} &> /dev/null
     echo -e "        [${green}*${reset}] wafw00f"
 
-    # echo -e "        [${blue}+${reset}] web application technology"
-    # web_fingerprinting_output="${fingerprinting_output}/web-technology"
-    # [ ! -d ${web_fingerprinting_output} ] && mkdir -p ${web_fingerprinting_output}
-    # cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_fingerprinting_output}
+    echo -e "        [${blue}+${reset}] wappalyzer"
+    web_fingerprinting_output="${fingerprinting_output}/web-technology"
+    [ ! -d ${web_fingerprinting_output} ] && mkdir -p ${web_fingerprinting_output}
+    cat ${hosts} | rush 'wappalyzer {} -P > {output_dir}/$(echo {} | urlbits format %s.%S.%r.%t).json' -j 5 -v output_dir=${web_fingerprinting_output}
 }
 
 # }}
